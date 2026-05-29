@@ -32,20 +32,30 @@ export default function AdminLoginPage({
         </div>
         <h1 className="mb-1 text-lg font-bold text-fg">Sign in</h1>
         <p className="mb-5 text-[13px] text-fg-sub">
-          Enter the admin password to manage the catalog.
+          Enter your admin credentials to manage the catalog.
         </p>
         <form action="/api/admin/login" method="post" className="space-y-4">
+          <Input
+            id="username"
+            name="username"
+            type="text"
+            label="Username"
+            placeholder="Enter username"
+            autoComplete="username"
+            autoFocus
+            required
+          />
           <Input
             id="password"
             name="password"
             type="password"
-            label="Admin Password"
+            label="Password"
             placeholder="Enter password"
-            autoFocus
+            autoComplete="current-password"
             required
           />
           {searchParams.error && (
-            <p className="text-[12px] text-danger">Incorrect password. Try again.</p>
+            <p className="text-[12px] text-danger">Incorrect username or password. Try again.</p>
           )}
           <button
             type="submit"

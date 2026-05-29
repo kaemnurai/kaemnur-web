@@ -12,13 +12,28 @@ function adminToken(): string {
   return crypto.createHmac("sha256", password).update("kaemnur-admin").digest("hex");
 }
 
-export function verifyAdminPassword(input: string): boolean {
-  const expected = process.env.ADMIN_PASSWORD ?? "";
-  if (!expected) return false;
-  // constant-time compare
+/** Constant-time string comparison that is safe against length mismatch. */
+function safeEqual(input: string, expected: string): boolean {
   const a = Buffer.from(input);
   const b = Buffer.from(expected);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+export function verifyAdminPassword(input: string): boolean {
+  const expected = process.env.ADMIN_PASSWORD ?? "";
+  if (!expected) return false;
+  return safeEqual(input, expected);
+}
+
+/** Both username and password must match the env-configured values. */
+export function verifyAdminCredentials(username: string, password: string): boolean {
+  const expectedUser = process.env.ADMIN_USERNAME ?? "";
+  const expectedPass = process.env.ADMIN_PASSWORD ?? "";
+  if (!expectedUser || !expectedPass) return false;
+  // Evaluate both (no short-circuit) to avoid leaking which field was wrong.
+  const userOk = safeEqual(username, expectedUser);
+  const passOk = safeEqual(password, expectedPass);
+  return userOk && passOk;
 }
 
 export function sessionToken(): string {
