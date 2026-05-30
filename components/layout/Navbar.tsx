@@ -158,8 +158,8 @@ export function Navbar() {
           <span className="text-[15px] font-bold tracking-tight">Kaemnur</span>
         </Link>
 
-        {/* Center tabs */}
-        <nav className="flex items-center gap-6">
+        {/* Center tabs — horizontally centered in the remaining space */}
+        <nav className="flex flex-1 items-center justify-center gap-6">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} className={cn("text-[14px] font-medium transition-colors", isActive(t.href) ? "text-fg" : "text-fg-sub hover:text-fg")}>
               {t.label}
@@ -167,8 +167,8 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Search */}
-        <div className="relative ml-2 hidden flex-1 max-w-md md:block" ref={wrapRef}>
+        {/* Search (center-right) */}
+        <div className="relative hidden w-full max-w-xs shrink-0 md:block" ref={wrapRef}>
           <label className="flex h-9 items-center gap-2 rounded-btn border border-line bg-bg px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
             <Icon name="search" size={14} className="shrink-0 text-fg-muted" />
             <input type="search" placeholder="Search products" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitSearch(); } }} className="flex-1 bg-transparent outline-none placeholder:text-fg-muted" />

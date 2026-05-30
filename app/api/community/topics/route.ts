@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     prisma.topic.count({ where }),
     prisma.topic.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: {
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     topics: topics.map((t) => ({
       ...t,
       bodyPreview: t.body.slice(0, 120) + (t.body.length > 120 ? "…" : ""),
@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
     pageSize: PAGE_SIZE,
     pageCount: Math.ceil(total / PAGE_SIZE),
   });
+  res.headers.set("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  return res;
 }
 
 // POST /api/community/topics — requires Supabase session

@@ -15,6 +15,7 @@ type Topic = {
   bodyPreview: string;
   authorName: string;
   category: string;
+  isPinned: boolean;
   createdAt: string;
   mentionedProducts: { id: string; name: string; slug: string }[];
   _count: { comments: number };
@@ -45,12 +46,30 @@ export default function CommunityPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [subforumCounts, setSubforumCounts] = useState<Record<string, number>>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pinningId, setPinningId] = useState<string | null>(null);
 
   // Check auth state
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+    setIsAdmin(localStorage.getItem("kaemnur_admin") === "true");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function togglePin(id: string) {
+    setPinningId(id);
+    try {
+      const res = await fetch(`/api/admin/community/topics/${id}/pin`, { method: "PUT" });
+      if (res.ok) {
+        await fetchTopics(activeCategory, page);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || "Gagal menyematkan postingan.");
+      }
+    } finally {
+      setPinningId(null);
+    }
+  }
 
   function handleNewDiscussion() {
     if (!userId) {
@@ -95,6 +114,71 @@ export default function CommunityPage() {
     setActiveCategory(cat);
     fetchTopics(cat, 1);
   }
+
+  function renderRow(topic: Topic) {
+    const bg = getAvatarColor(topic.authorName);
+    const fg = getAvatarTextColor(bg);
+    return (
+      <div key={topic.id} className="flex gap-3 p-4 hover:bg-card-hover">
+        {/* Avatar */}
+        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded text-[13px] font-bold" style={{ backgroundColor: bg, color: fg }}>
+          {getInitial(topic.authorName)}
+        </span>
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <Link href={`/community/${topic.id}`} className="group">
+            <p className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-fg group-hover:text-accent">
+              {topic.title}
+              {topic.isPinned && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                  <Icon name="pin" size={10} />
+                  Disematkan
+                </span>
+              )}
+            </p>
+          </Link>
+          {/* Product mention badges */}
+          {topic.mentionedProducts.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {topic.mentionedProducts.map((p) => (
+                <Link key={p.id} href={`/products/${p.slug}`} className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/25">
+                  @{p.name}
+                </Link>
+              ))}
+            </div>
+          )}
+          <p className="mt-1 text-[11px] text-fg-sub">
+            by <span className="text-fg">{topic.authorName}</span> · <span className="rounded bg-line px-1.5 py-0.5 text-fg-muted">{topic.category}</span>
+          </p>
+        </div>
+        {/* Meta */}
+        <div className="flex shrink-0 flex-col items-end gap-1 text-[11px] text-fg-sub">
+          <span>{relativeTime(topic.createdAt)}</span>
+          <span className="flex items-center gap-1">
+            <Icon name="message-square" size={11} />
+            {topic._count.comments}
+          </span>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => togglePin(topic.id)}
+              disabled={pinningId === topic.id}
+              className={cn(
+                "mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50",
+                topic.isPinned ? "text-accent hover:bg-accent/10" : "text-fg-muted hover:bg-card hover:text-fg"
+              )}
+            >
+              <Icon name="pin" size={10} />
+              {pinningId === topic.id ? "…" : topic.isPinned ? "Lepas" : "Sematkan"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const pinnedTopics = topics.filter((t) => t.isPinned);
+  const regularTopics = topics.filter((t) => !t.isPinned);
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
@@ -148,46 +232,25 @@ export default function CommunityPage() {
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-line rounded-card border border-line bg-card">
-              {topics.map((topic) => {
-                const bg = getAvatarColor(topic.authorName);
-                const fg = getAvatarTextColor(bg);
-                return (
-                  <div key={topic.id} className="flex gap-3 p-4 hover:bg-card-hover">
-                    {/* Avatar */}
-                    <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded text-[13px] font-bold" style={{ backgroundColor: bg, color: fg }}>
-                      {getInitial(topic.authorName)}
-                    </span>
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/community/${topic.id}`} className="group">
-                        <p className="text-[14px] font-semibold text-fg group-hover:text-accent">{topic.title}</p>
-                      </Link>
-                      {/* Product mention badges */}
-                      {topic.mentionedProducts.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {topic.mentionedProducts.map((p) => (
-                            <Link key={p.id} href={`/products/${p.slug}`} className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/25">
-                              @{p.name}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                      <p className="mt-1 text-[11px] text-fg-sub">
-                        by <span className="text-fg">{topic.authorName}</span> · <span className="rounded bg-line px-1.5 py-0.5 text-fg-muted">{topic.category}</span>
-                      </p>
-                    </div>
-                    {/* Meta */}
-                    <div className="flex shrink-0 flex-col items-end gap-1 text-[11px] text-fg-sub">
-                      <span>{relativeTime(topic.createdAt)}</span>
-                      <span className="flex items-center gap-1">
-                        <Icon name="message-square" size={11} />
-                        {topic._count.comments}
-                      </span>
-                    </div>
+            <div className="space-y-4">
+              {/* Pinned topics */}
+              {pinnedTopics.length > 0 && (
+                <div>
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
+                    📌 Disematkan
+                  </p>
+                  <div className="divide-y divide-line rounded-card border border-accent/30 bg-card">
+                    {pinnedTopics.map(renderRow)}
                   </div>
-                );
-              })}
+                </div>
+              )}
+
+              {/* Regular topics */}
+              {regularTopics.length > 0 && (
+                <div className="divide-y divide-line rounded-card border border-line bg-card">
+                  {regularTopics.map(renderRow)}
+                </div>
+              )}
             </div>
           )}
 

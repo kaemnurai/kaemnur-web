@@ -33,7 +33,7 @@ export function ScreenshotGallery({
   return (
     <div>
       <div className="overflow-hidden rounded-card border border-line bg-bg">
-        <div className="aspect-video w-full">
+        <div className="aspect-video max-h-[400px] w-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={current.id}

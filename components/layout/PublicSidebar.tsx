@@ -101,8 +101,8 @@ export function PublicSidebar({
         {/* FILTERS */}
         <Section label="FILTERS">
           <div className="px-3 py-1">
-            <p className="mb-1.5 text-[10px] font-semibold text-fg-muted">Pricing</p>
-            <ul className="space-y-1">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">Pricing</p>
+            <ul className="space-y-0.5">
               {PRICING_OPTIONS.map((opt) => {
                 const checked = pricingValues.includes(opt.value);
                 return (
@@ -115,10 +115,17 @@ export function PublicSidebar({
                 );
               })}
             </ul>
+            {pricingValues.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {PRICING_OPTIONS.filter((o) => pricingValues.includes(o.value)).map((o) => (
+                  <FilterTag key={o.value} label={o.label} onRemove={() => toggleParam("pricing", o.value)} />
+                ))}
+              </div>
+            )}
           </div>
           <div className="px-3 py-1">
-            <p className="mb-1.5 text-[10px] font-semibold text-fg-muted">Platform</p>
-            <ul className="space-y-1">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-fg-muted">Platform</p>
+            <ul className="space-y-0.5">
               {PLATFORM_OPTIONS.map((opt) => {
                 const checked = platformValues.includes(opt.value);
                 return (
@@ -131,6 +138,13 @@ export function PublicSidebar({
                 );
               })}
             </ul>
+            {platformValues.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {PLATFORM_OPTIONS.filter((o) => platformValues.includes(o.value)).map((o) => (
+                  <FilterTag key={o.value} label={o.label} onRemove={() => toggleParam("platform", o.value)} />
+                ))}
+              </div>
+            )}
           </div>
           {(pricingValues.length > 0 || platformValues.length > 0) && (
             <button
@@ -141,15 +155,28 @@ export function PublicSidebar({
                 next.delete("platform");
                 router.push(`/?${next.toString()}`);
               }}
-              className="mx-3 mt-1 flex items-center gap-1.5 text-[11px] font-medium text-fg-muted hover:text-fg"
+              className="mx-3 mt-1 flex items-center gap-1.5 text-[11px] font-medium text-accent hover:text-accent-hover"
             >
               <Icon name="x" size={11} />
-              Clear filters
+              Hapus semua filter
             </button>
           )}
         </Section>
       </div>
     </aside>
+  );
+}
+
+function FilterTag({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="inline-flex items-center gap-1 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-accent transition-colors hover:bg-accent/25"
+    >
+      {label}
+      <Icon name="x" size={10} />
+    </button>
   );
 }
 

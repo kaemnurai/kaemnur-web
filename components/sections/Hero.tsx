@@ -64,7 +64,7 @@ export function Hero({ product }: { product: HeroProduct | null }) {
             href={`/products/${product.slug}`}
             className="group relative block overflow-hidden rounded-btn border border-line bg-bg"
           >
-            <div className="aspect-video w-full">
+            <div className="aspect-video max-h-[420px] w-full">
               {main ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

@@ -70,8 +70,44 @@ export function AccountTabs({
 }) {
   const [tab, setTab] = useState<TabKey>("instalasi");
 
+  // Local copy so deletes reflect instantly without a page reload (Feature 7)
+  const [items, setItems] = useState<InstallItem[]>(installs);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function deleteOne(id: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/account/downloads/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setItems((prev) => prev.filter((it) => it.id !== id));
+        setConfirmId(null);
+      } else {
+        alert("Gagal menghapus riwayat. Coba lagi.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteAll() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/account/downloads`, { method: "DELETE" });
+      if (res.ok) {
+        setItems([]);
+        setConfirmAll(false);
+      } else {
+        alert("Gagal menghapus semua riwayat. Coba lagi.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const TABS: { key: TabKey; label: string; count: number }[] = [
-    { key: "instalasi", label: "Instalasi", count: installs.length },
+    { key: "instalasi", label: "Instalasi", count: items.length },
     { key: "lisensi", label: "Lisensi", count: licenses.length },
     { key: "ulasan", label: "Ulasan Saya", count: reviews.length },
   ];
@@ -106,37 +142,79 @@ export function AccountTabs({
       <div className="p-5">
         {/* ── Instalasi ── */}
         {tab === "instalasi" && (
-          installs.length === 0 ? (
-            <Empty icon="download" title="Belum ada instalasi">
+          items.length === 0 ? (
+            <Empty icon="download" title="Belum ada riwayat instalasi">
               <Link href="/" className="mt-3 inline-block text-[12px] font-medium text-accent hover:underline">
                 Cari aplikasi untuk diunduh →
               </Link>
             </Empty>
           ) : (
-            <ul className="divide-y divide-line">
-              {installs.map((it) => (
-                <li key={it.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-btn bg-bg text-[13px] font-bold text-fg-sub">
-                      {it.name[0]}
-                    </span>
-                    <div className="min-w-0">
-                      <Link href={`/products/${it.slug}`} className="text-[14px] font-semibold text-fg hover:text-accent">
-                        {it.name}
-                      </Link>
-                      <p className="text-[12px] text-fg-sub">v{it.version} · {it.date}</p>
+            <>
+              {/* Hapus Semua */}
+              <div className="mb-2 flex items-center justify-end">
+                {confirmAll ? (
+                  <span className="flex items-center gap-2 text-[12px]">
+                    <span className="text-red-400">Hapus semua riwayat?</span>
+                    <button type="button" onClick={deleteAll} disabled={busy} className="font-semibold text-red-400 hover:underline disabled:opacity-50">
+                      Ya, Hapus
+                    </button>
+                    <button type="button" onClick={() => setConfirmAll(false)} className="text-fg-muted hover:text-fg">
+                      Batal
+                    </button>
+                  </span>
+                ) : (
+                  <button type="button" onClick={() => setConfirmAll(true)} className="text-[12px] font-medium text-red-400 hover:underline">
+                    Hapus Semua
+                  </button>
+                )}
+              </div>
+              <ul className="divide-y divide-line">
+                {items.map((it) => (
+                  <li key={it.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-btn bg-bg text-[13px] font-bold text-fg-sub">
+                        {it.name[0]}
+                      </span>
+                      <div className="min-w-0">
+                        <Link href={`/products/${it.slug}`} className="text-[14px] font-semibold text-fg hover:text-accent">
+                          {it.name}
+                        </Link>
+                        <p className="text-[12px] text-fg-sub">v{it.version} · {it.date}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded bg-line px-2 py-0.5 text-[11px] font-semibold text-fg-sub">{it.platform}</span>
-                    <Link href={`/products/${it.slug}`} className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-medium text-accent hover:bg-accent/10">
-                      <Icon name="download" size={11} />
-                      Unduh Lagi
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {confirmId === it.id ? (
+                        <span className="flex items-center gap-2 text-[12px]">
+                          <span className="text-red-400">Hapus?</span>
+                          <button type="button" onClick={() => deleteOne(it.id)} disabled={busy} className="font-semibold text-red-400 hover:underline disabled:opacity-50">
+                            Ya, Hapus
+                          </button>
+                          <button type="button" onClick={() => setConfirmId(null)} className="text-fg-muted hover:text-fg">
+                            Batal
+                          </button>
+                        </span>
+                      ) : (
+                        <>
+                          <span className="rounded bg-line px-2 py-0.5 text-[11px] font-semibold text-fg-sub">{it.platform}</span>
+                          <Link href={`/products/${it.slug}`} className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-medium text-accent hover:bg-accent/10">
+                            <Icon name="download" size={11} />
+                            Unduh Lagi
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmId(it.id)}
+                            title="Hapus dari riwayat"
+                            className="text-fg-muted transition-colors hover:text-red-400"
+                          >
+                            <Icon name="trash" size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           )
         )}
 

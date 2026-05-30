@@ -19,5 +19,7 @@ export async function GET() {
       createdAt: true,
     },
   });
-  return NextResponse.json(products);
+  const res = NextResponse.json(products);
+  res.headers.set("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  return res;
 }

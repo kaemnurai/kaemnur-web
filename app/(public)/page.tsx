@@ -2,7 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { Hero, type HeroProduct } from "@/components/sections/Hero";
 import { ProductSection } from "@/components/sections/ProductSection";
 import { RecentUpdates, type RecentUpdate } from "@/components/sections/RecentUpdates";
+import { TopDownloaded, type TopProduct } from "@/components/sections/TopDownloaded";
 import type { ProductCardData } from "@/components/product/ProductCard";
+
+// Cache the catalog for 60s (ISR) to cut DB load — Feature 6
+export const revalidate = 60;
 
 export default async function LandingPage({
   searchParams,
@@ -70,6 +74,15 @@ export default async function LandingPage({
       include: { product: { select: { name: true, slug: true } } },
     }),
   ]);
+
+  // Top 10 most-downloaded — independent of the active filters (Feature 3).
+  // downloadCount is the maintained aggregate of DownloadLog rows.
+  const topProductsRaw = await prisma.product.findMany({
+    orderBy: [{ downloadCount: "desc" }, { createdAt: "desc" }],
+    take: 10,
+    select: { id: true, name: true, slug: true, category: true, downloadCount: true },
+  });
+  const topProducts: TopProduct[] = topProductsRaw;
 
   const featuredRaw = products.find((p) => p.isFeatured) ?? products[0] ?? null;
 
@@ -215,6 +228,8 @@ export default async function LandingPage({
       ) : null}
 
       <RecentUpdates updates={updates} />
+
+      <TopDownloaded products={topProducts} />
     </div>
   );
 }

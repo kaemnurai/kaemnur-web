@@ -13,6 +13,9 @@ import { getDisplayRating } from "@/lib/rating";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
+// Cache the product page for 60s (ISR) — Feature 6
+export const revalidate = 60;
+
 type TabKey = "overview" | "changelog" | "requirements";
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -182,24 +185,39 @@ export default async function ProductPage({
                 </p>
               </section>
 
-              {/* 3. Key features */}
+              {/* 3. Key features — Free vs PRO comparison table */}
               <section>
-                <h2 className="mb-3 text-lg font-bold text-fg">Key features</h2>
+                <h2 className="mb-3 text-lg font-bold text-fg">Fitur Utama</h2>
                 {product.features.length === 0 ? (
-                  <p className="text-[13px] text-fg-sub">No features listed yet.</p>
+                  <p className="text-[13px] text-fg-sub">Belum ada fitur yang dicantumkan.</p>
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {product.features.map((f) => (
-                      <div key={f.id} className="rounded-btn border border-line bg-card p-4">
-                        <div className="mb-2 flex items-center justify-between">
-                          <Icon name="zap" size={18} className="text-accent" />
-                          {f.isPro && (
-                            <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">PRO</span>
-                          )}
-                        </div>
-                        <p className="text-[13px] font-semibold text-fg">{f.text}</p>
-                      </div>
-                    ))}
+                  <div className="overflow-hidden rounded-card border border-line">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-sidebar text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
+                          <th className="px-4 py-2.5 font-medium">Fitur</th>
+                          <th className="w-20 px-4 py-2.5 text-center font-medium">Free</th>
+                          <th className="w-20 px-4 py-2.5 text-center font-medium">PRO</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {product.features.map((f) => (
+                          <tr key={f.id} className="border-b border-line last:border-b-0">
+                            <td className="px-4 py-2 text-[13px] font-medium text-fg">{f.text}</td>
+                            <td className="px-4 py-2 text-center text-[14px]">
+                              {f.isPro ? (
+                                <span className="text-fg-muted">—</span>
+                              ) : (
+                                <span className="font-bold text-accent">✓</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-center text-[14px]">
+                              <span className="font-bold text-accent">✓</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </section>

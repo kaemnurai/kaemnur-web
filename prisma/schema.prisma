@@ -147,6 +147,7 @@ model Topic {
   body       String
   authorName String
   category   String      @default("General")
+  isPinned   Boolean     @default(false) // admin-pinned; max 3, shown at top of community
   userId     String?     // Supabase auth user id (null for legacy/anonymous)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
