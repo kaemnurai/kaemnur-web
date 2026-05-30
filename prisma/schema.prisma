@@ -102,6 +102,7 @@ model License {
   deviceId          String?   // hardware fingerprint bound at activation
   activatedPlatform String?   // "WINDOWS" or "MAC"
   resetAt           DateTime? // set when admin resets; distinguishes "Direset" from "Belum Diaktifkan"
+  expiresAt         DateTime? // null = never expires; past date = expired license
   createdAt         DateTime  @default(now())
   product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   user              UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)

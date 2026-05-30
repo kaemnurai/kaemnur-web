@@ -29,7 +29,7 @@ export function DashboardChart({ data, hasData, period }: Props) {
   return (
     <section className="rounded-card border border-line bg-card p-4">
       <header className="mb-3 flex items-center justify-between">
-        <p className="text-[14px] font-semibold text-fg">Downloads · selected period</p>
+        <p className="text-[14px] font-semibold text-fg">Download</p>
         <div className="flex items-center gap-1 rounded-btn bg-bg p-0.5 text-[11px]">
           {PERIODS.map((p) => (
             <button
@@ -38,7 +38,7 @@ export function DashboardChart({ data, hasData, period }: Props) {
               onClick={() => switchPeriod(p.value)}
               className={
                 period === p.value
-                  ? "rounded bg-card px-2 py-1 font-semibold text-fg"
+                  ? "rounded border border-accent/60 bg-accent/10 px-2 py-1 font-semibold text-accent"
                   : "px-2 py-1 text-fg-sub hover:text-fg"
               }
             >
@@ -51,12 +51,12 @@ export function DashboardChart({ data, hasData, period }: Props) {
         <LineChart data={data} yLabel={(v) => String(Math.round(v))} />
       ) : (
         <div className="flex h-[220px] items-center justify-center rounded-btn border border-dashed border-line text-[13px] text-fg-sub">
-          No downloads yet — data will appear here once users download.
+          Belum ada download — data akan muncul di sini setelah ada unduhan.
         </div>
       )}
       <footer className="mt-3 flex items-center justify-between text-[11px] text-fg-sub">
-        <span>From DownloadLog table</span>
-        <span className="text-accent">{data.reduce((s, v) => s + v, 0)} downloads in period</span>
+        <span>Dari tabel DownloadLog</span>
+        <span className="text-accent">{data.reduce((s, v) => s + v, 0)} download pada periode ini</span>
       </footer>
     </section>
   );

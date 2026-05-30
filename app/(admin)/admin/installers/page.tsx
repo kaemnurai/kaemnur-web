@@ -154,7 +154,7 @@ export default async function AdminInstallersPage() {
                           <input type="hidden" name="id" value={inst.id} />
                           <ConfirmSubmit
                             confirm="Delete this installer?"
-                            className="text-danger hover:bg-danger/10"
+                            className="px-3 py-1.5 text-[12px] font-medium text-danger hover:bg-danger/10"
                           >
                             Delete
                           </ConfirmSubmit>

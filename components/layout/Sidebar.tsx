@@ -1,10 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { NotificationBell } from "@/components/admin/NotificationBell";
 import { cn } from "@/lib/utils";
 
 type AdminNavItem = {
@@ -60,23 +58,19 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
     href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-[200px] shrink-0 flex-col border-r border-line bg-sidebar lg:flex">
-      {/* Top: logo + ADMIN label + notification bell */}
-      <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-        <Image src="/logo-dark.png" alt="" width={24} height={24} className="h-6 w-6 object-contain" />
-        <span className="text-[13px] font-bold tracking-tight text-fg">Kaemnur</span>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Admin</span>
-        <NotificationBell initialUnread={counts?.unreadCount ?? 0} />
-      </div>
-
-      {/* User card */}
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[200px] shrink-0 flex-col border-r border-line bg-sidebar lg:flex">
+      {/* User card: yellow K avatar + name + role + unread badge */}
       <div className="flex items-center gap-2 border-b border-line px-3 py-3">
-        <span className="grid h-8 w-8 place-items-center rounded bg-accent text-[13px] font-bold text-bg">K</span>
+        <span className="grid h-9 w-9 place-items-center rounded-btn bg-accent text-[14px] font-bold text-bg">K</span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-fg">Kaemnur</p>
           <p className="truncate text-[11px] text-fg-sub">Admin</p>
         </div>
-        <Icon name="chevron-down" size={14} className="text-fg-muted" />
+        {counts?.unreadCount ? (
+          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-bg">
+            {counts.unreadCount > 9 ? "9+" : counts.unreadCount}
+          </span>
+        ) : null}
       </div>
 
       {/* Nav */}

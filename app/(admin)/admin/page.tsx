@@ -5,7 +5,7 @@ import { AdminTopBar } from "@/components/admin/AdminTopBar";
 import { StatCard } from "@/components/admin/StatCard";
 import { DashboardChart } from "@/components/admin/DashboardChart";
 import { Icon } from "@/components/ui/Icon";
-import { formatCount, productAccent } from "@/lib/utils";
+import { formatCount, formatDate, productAccent, PLATFORM_LABELS } from "@/lib/utils";
 
 export const metadata = { title: "Admin Dashboard" };
 
@@ -109,15 +109,15 @@ export default async function AdminDashboard({
     ...recentLicenses.map((l) => ({
       id: `lic-${l.id}`,
       name: l.buyerName,
-      action: `License issued · ${l.product.name}`,
+      action: `Lisensi diterbitkan · ${l.product.name}`,
       time: l.createdAt,
       icon: "key" as const,
       seed: l.product.slug,
     })),
     ...recentDownloads.map((d) => ({
       id: `dl-${d.id}`,
-      name: d.product.name,
-      action: `Downloaded · ${d.platform}`,
+      name: `${d.product.name} diunduh`,
+      action: `${PLATFORM_LABELS[d.platform] ?? d.platform} · Indonesia`,
       time: d.createdAt,
       icon: "download" as const,
       seed: d.product.slug,
@@ -128,48 +128,54 @@ export default async function AdminDashboard({
 
   const downloadTrend = trendPercent(currentDownloads, previousDownloads);
   const licenseTrend = trendPercent(currentLicenses, previousLicenses);
-  const periodLabel = { "7d": "7 days", "30d": "30 days", "90d": "90 days", ytd: "this year" }[period];
+  const periodLabel = { "7d": "7 hari terakhir", "30d": "30 hari terakhir", "90d": "90 hari terakhir", ytd: "tahun ini" }[period];
 
   return (
     <AdminShell>
       <AdminTopBar
-        eyebrow={`Overview · Last ${periodLabel}`}
-        title="Welcome back, Admin."
-        subtitle={`${productCount} ${productCount === 1 ? "product" : "products"} · ${formatCount(totalDownloads)} lifetime downloads · ${activatedCount} PRO licenses`}
+        eyebrow={`Overview · ${periodLabel}`}
+        title="Selamat datang kembali, Admin."
+        subtitle={`${productCount} produk · ${formatCount(totalDownloads)} total download · ${activatedCount} lisensi PRO aktif`}
         actions={
           <>
             <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-btn border border-line bg-card px-3 text-[12px] font-medium text-fg-sub hover:border-fg-muted hover:text-fg">
               <Icon name="download" size={13} />
-              Export report
+              Export Report
             </button>
-            <Link href="/admin/products" className="inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover">
+            <Link href="/admin/products/new" className="inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover">
               <Icon name="plus" size={13} />
-              New product
+              Produk Baru
             </Link>
           </>
         }
       />
 
       <div className="space-y-5 p-6">
-        {/* Step 3: stat cards with real trend % */}
+        {/* Stat cards with colored icon tiles + real trend % */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Total Products" value={String(productCount)} note="all channels" />
+          <StatCard label="Total Produk" value={String(productCount)} icon="package" tone="orange" note="di katalog" />
           <StatCard
-            label="Total Licenses"
-            value={String(licenseCount)}
-            trend={licenseTrend}
-            note={`vs prev ${periodLabel}`}
-          />
-          <StatCard
-            label="Downloads"
-            value={formatCount(currentDownloads)}
+            label="Total Download"
+            value={formatCount(totalDownloads)}
+            icon="download"
+            tone="emerald"
             trend={downloadTrend}
-            note={`vs prev ${periodLabel}`}
+            note={`vs ${periodLabel}`}
           />
           <StatCard
-            label="Active PRO"
+            label="Total Lisensi"
+            value={String(licenseCount)}
+            icon="key"
+            tone="accent"
+            trend={licenseTrend}
+            note={`${activatedCount} aktif · ${licenseCount - activatedCount} nonaktif`}
+          />
+          <StatCard
+            label="Lisensi PRO Aktif"
             value={String(activatedCount)}
-            note={`of ${licenseCount} keys`}
+            icon="crown"
+            tone="violet"
+            note={`dari ${licenseCount} kunci`}
           />
         </div>
 
@@ -186,14 +192,14 @@ export default async function AdminDashboard({
           {/* Activity — Step 5: relative timestamps */}
           <section className="rounded-card border border-line bg-card">
             <header className="flex items-center justify-between border-b border-line px-4 py-3">
-              <p className="text-[14px] font-semibold text-fg">Recent activity</p>
+              <p className="text-[14px] font-semibold text-fg">Aktivitas Terbaru</p>
               <Link href="/admin/licenses" className="text-[11px] font-medium text-accent hover:underline">
-                View all
+                Lihat semua
               </Link>
             </header>
             {activity.length === 0 ? (
               <p className="px-4 py-6 text-center text-[12px] text-fg-sub">
-                No activity yet — downloads and license events will appear here.
+                Belum ada aktivitas — download dan lisensi akan muncul di sini.
               </p>
             ) : (
               <ul className="divide-y divide-line">
@@ -221,25 +227,26 @@ export default async function AdminDashboard({
         {/* Products table */}
         <section className="rounded-card border border-line bg-card">
           <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-            <p className="text-[14px] font-semibold text-fg">Products · {productCount}</p>
+            <p className="text-[14px] font-semibold text-fg">Produk Anda</p>
             <div className="flex items-center gap-2">
-              <Link href="/admin/products" className="inline-flex h-8 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover">
+              <Link href="/admin/products/new" className="inline-flex h-8 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover">
                 <Icon name="plus" size={12} />
-                New product
+                Produk Baru
               </Link>
             </div>
           </header>
           {products.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[13px] text-fg-sub">No products yet.</p>
+            <p className="px-4 py-8 text-center text-[13px] text-fg-sub">Belum ada produk.</p>
           ) : (
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-muted">
-                  <th className="px-4 py-3 font-medium">Product</th>
-                  <th className="px-4 py-3 font-medium">Version</th>
+                  <th className="px-4 py-3 font-medium">Produk</th>
+                  <th className="px-4 py-3 font-medium">Versi</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Downloads</th>
-                  <th className="px-4 py-3 font-medium">Licenses</th>
+                  <th className="px-4 py-3 font-medium">Lisensi</th>
+                  <th className="px-4 py-3 font-medium">Dibuat</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -251,12 +258,15 @@ export default async function AdminDashboard({
                     <tr key={p.id} className="hover:bg-card-hover">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <span className={`grid h-7 w-7 place-items-center rounded text-[12px] font-bold text-bg ${accent.solid}`}>
+                          <span className={`grid h-8 w-8 place-items-center rounded-btn text-[13px] font-bold ${accent.bg} ${accent.fg}`}>
                             {p.name[0]}
                           </span>
-                          <Link href={`/admin/products/${p.id}`} className="font-medium text-fg hover:underline">
-                            {p.name}
-                          </Link>
+                          <div className="min-w-0">
+                            <Link href={`/admin/products/${p.id}`} className="font-medium text-fg hover:underline">
+                              {p.name}
+                            </Link>
+                            {p.tagline && <p className="truncate text-[11px] text-fg-sub">{p.tagline}</p>}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 font-mono text-[12px] text-fg-sub">v{p.version}</td>
@@ -273,6 +283,7 @@ export default async function AdminDashboard({
                       </td>
                       <td className="px-4 py-3 text-fg">{formatCount(p._count.downloadLogs)}</td>
                       <td className="px-4 py-3 text-fg">{p._count.licenses}</td>
+                      <td className="px-4 py-3 text-[12px] text-fg-sub">{formatDate(p.createdAt)}</td>
                       <td className="px-4 py-3 text-right">
                         <Link href={`/admin/products/${p.id}`} className="inline-grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-bg hover:text-fg">
                           <Icon name="more-horizontal" size={14} />

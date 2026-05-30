@@ -10,34 +10,61 @@ import { deleteProduct } from "@/app/(admin)/admin/actions";
 
 export const metadata = { title: "Admin · Products" };
 
+const PAGE_SIZE = 10;
+
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: { q?: string; category?: string; page?: string };
 }) {
   const q = (searchParams.q ?? "").trim();
+  const category = (searchParams.category ?? "").trim();
+  const page = Math.max(1, Number(searchParams.page) || 1);
 
-  const where: Prisma.ProductWhereInput = q
-    ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { category: { contains: q, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where: Prisma.ProductWhereInput = {};
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { category: { contains: q, mode: "insensitive" } },
+    ];
+  }
+  if (category) where.category = category;
 
-  const products = await prisma.product.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { installers: true, licenses: true } } },
-  });
+  const [total, products, categoryRows] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: { _count: { select: { installers: true, licenses: true } } },
+    }),
+    prisma.product.findMany({
+      select: { category: true },
+      distinct: ["category"],
+      orderBy: { category: "asc" },
+    }),
+  ]);
+
+  const categories = categoryRows.map((c) => c.category);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, total);
+
+  function pageHref(p: number): string {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (category) params.set("category", category);
+    params.set("page", String(p));
+    return `/admin/products?${params.toString()}`;
+  }
 
   return (
     <AdminShell>
       <AdminTopBar
         eyebrow="Workspace"
         title="Products"
-        subtitle={`${products.length} ${products.length === 1 ? "product" : "products"} in the catalog`}
+        subtitle={`${total} produk dalam katalog`}
         actions={
           <Link
             href="/admin/products/new"
@@ -50,8 +77,8 @@ export default async function AdminProductsPage({
       />
 
       <div className="space-y-4 p-6">
-        {/* Search */}
-        <form method="GET" className="flex gap-2">
+        {/* Search + filter bar */}
+        <form method="GET" className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <label className="flex h-9 flex-1 items-center gap-2 rounded-btn border border-line bg-bg px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
             <Icon name="search" size={14} className="shrink-0 text-fg-muted" />
             <input
@@ -59,13 +86,27 @@ export default async function AdminProductsPage({
               name="q"
               defaultValue={q}
               placeholder="Cari produk berdasarkan nama atau kategori…"
-              className="flex-1 bg-transparent outline-none placeholder:text-fg-muted"
+              className="flex-1 bg-transparent text-fg outline-none placeholder:text-fg-muted"
             />
           </label>
-          <button type="submit" className="h-9 rounded-btn border border-line px-4 text-[12px] font-medium text-fg-sub hover:border-fg-muted hover:text-fg">
-            Cari
+          <select
+            name="category"
+            defaultValue={category}
+            className="h-9 rounded-btn border border-line bg-bg px-3 text-[12px] text-fg outline-none focus:border-accent/60"
+          >
+            <option value="">Semua Kategori</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center gap-1.5 rounded-btn border border-line px-4 text-[12px] font-medium text-fg-sub hover:border-fg-muted hover:text-fg"
+          >
+            <Icon name="filter" size={13} />
+            Filter
           </button>
-          {q && (
+          {(q || category) && (
             <Link href="/admin/products" className="inline-flex h-9 items-center rounded-btn px-3 text-[12px] font-medium text-fg-muted hover:text-fg">
               Reset
             </Link>
@@ -73,10 +114,10 @@ export default async function AdminProductsPage({
         </form>
 
         {/* Products table */}
-        <section className="rounded-card border border-line bg-card">
+        <section className="overflow-hidden rounded-card border border-line bg-card">
           {products.length === 0 ? (
             <p className="px-4 py-12 text-center text-[13px] text-fg-sub">
-              {q ? `Tidak ada produk yang cocok dengan “${q}”.` : "Belum ada produk — klik “Produk Baru” untuk menambah."}
+              {q || category ? "Tidak ada produk yang cocok dengan filter." : "Belum ada produk — klik “Produk Baru” untuk menambah."}
             </p>
           ) : (
             <table className="w-full text-left text-[13px]">
@@ -87,57 +128,83 @@ export default async function AdminProductsPage({
                   <th className="px-4 py-3 font-medium">Installers</th>
                   <th className="px-4 py-3 font-medium">Licenses</th>
                   <th className="px-4 py-3 font-medium">Downloads</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 text-right font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {products.map((p) => {
                   const accent = productAccent(p.slug);
+                  const published = p._count.installers > 0;
                   return (
                     <tr key={p.id} className="hover:bg-card-hover">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`grid h-7 w-7 place-items-center rounded text-[12px] font-bold text-bg ${accent.solid}`}
-                          >
+                        <div className="flex items-center gap-3">
+                          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-btn text-[18px] font-bold ${accent.bg} ${accent.fg}`}>
                             {p.name[0]}
                           </span>
                           <div className="min-w-0">
-                            <p className="font-medium text-fg">{p.name}</p>
-                            <p className="text-[11px] text-fg-sub">
+                            <div className="flex items-center gap-2">
+                              <Link href={`/admin/products/${p.id}`} className="font-medium text-fg hover:underline">
+                                {p.name}
+                              </Link>
+                              {p.isFeatured && (
+                                <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                            {p.tagline && <p className="truncate text-[11px] text-fg-sub">{p.tagline}</p>}
+                            <p className="text-[11px] text-fg-muted">
                               v{p.version} · {formatDate(p.createdAt)}
                             </p>
                           </div>
-                          {p.isFeatured && (
-                            <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
-                              Featured
-                            </span>
-                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-fg-sub">{p.category}</td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex rounded bg-line px-2 py-0.5 text-[11px] font-medium text-fg-sub">
+                          {p.category}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-fg">{p._count.installers}</td>
                       <td className="px-4 py-3 text-fg">{p._count.licenses}</td>
                       <td className="px-4 py-3 text-fg">{formatCount(p.downloadCount)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
+                        {published ? (
+                          <span className="inline-flex items-center gap-1.5 rounded bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
+                            <span className="h-1.5 w-1.5 rounded-full bg-success" />Published
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-warning">
+                            <span className="h-1.5 w-1.5 rounded-full bg-warning" />Draft
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
                             href={`/admin/products/${p.id}`}
-                            className="inline-flex h-7 items-center gap-1 rounded px-2 text-[12px] font-medium text-accent hover:bg-accent/10"
+                            title="Edit produk"
+                            className="inline-grid h-7 w-7 place-items-center rounded text-accent hover:bg-accent/10"
                           >
-                            <Icon name="edit" size={11} />
-                            Edit
+                            <Icon name="edit" size={13} />
                           </Link>
                           <form action={deleteProduct}>
                             <input type="hidden" name="id" value={p.id} />
                             <ConfirmSubmit
                               confirm={`Hapus "${p.name}" beserta semua datanya?`}
-                              className="text-danger hover:bg-danger/10"
+                              className="h-7 w-7 text-danger hover:bg-danger/10"
+                              title="Hapus produk"
                             >
-                              <Icon name="trash" size={11} />
-                              Hapus
+                              <Icon name="trash" size={13} />
                             </ConfirmSubmit>
                           </form>
+                          <Link
+                            href={`/admin/products/${p.id}`}
+                            className="inline-grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-bg hover:text-fg"
+                          >
+                            <Icon name="more-horizontal" size={14} />
+                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -147,6 +214,32 @@ export default async function AdminProductsPage({
             </table>
           )}
         </section>
+
+        {/* Pagination */}
+        {total > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-[12px] text-fg-sub">
+              Menampilkan {from} sampai {to} dari {total} produk
+            </p>
+            {pageCount > 1 && (
+              <div className="flex items-center gap-1">
+                {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+                  <Link
+                    key={p}
+                    href={pageHref(p)}
+                    className={
+                      p === page
+                        ? "grid h-8 min-w-8 place-items-center rounded-btn bg-accent px-2 text-[12px] font-semibold text-bg"
+                        : "grid h-8 min-w-8 place-items-center rounded-btn border border-line px-2 text-[12px] text-fg-sub hover:bg-card"
+                    }
+                  >
+                    {p}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </AdminShell>
   );
