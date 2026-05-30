@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { NewTopicModal } from "@/components/community/NewTopicModal";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
+import { CATEGORY_STYLE, pseudoViews } from "@/lib/community";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -21,15 +22,42 @@ type Topic = {
   _count: { comments: number };
 };
 
+type Stats = {
+  topics: number;
+  members: number;
+  posts: number;
+  views: number;
+  contributors: { name: string; posts: number }[];
+};
+
 const CATEGORIES = ["All", "General", "Questions", "Bug Reports", "Suggestions"];
+
+const TAB_ICONS: Record<string, string> = {
+  All: "layout-dashboard",
+  General: "message-square",
+  Questions: "help-circle",
+  "Bug Reports": "alert-triangle",
+  Suggestions: "sparkles",
+};
+
+const SORTS = [
+  { value: "newest", label: "Terbaru" },
+  { value: "oldest", label: "Terlama" },
+  { value: "popular", label: "Paling Ramai" },
+];
 
 function relativeTime(date: string): string {
   const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
-  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (s < 60) return "baru saja";
+  if (s < 3600) return `${Math.floor(s / 60)}m lalu`;
+  if (s < 86400) return `${Math.floor(s / 3600)}j lalu`;
+  if (s < 604800) return `${Math.floor(s / 86400)}h lalu`;
+  return new Date(date).toLocaleDateString("id-ID", { month: "short", day: "numeric" });
+}
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
 }
 
 export default function CommunityPage() {
@@ -39,17 +67,19 @@ export default function CommunityPage() {
   const categoryParam = params.get("category") || "All";
   const [activeCategory, setActiveCategory] = useState(categoryParam);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [subforumCounts, setSubforumCounts] = useState<Record<string, number>>({});
+  const [stats, setStats] = useState<Stats | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pinningId, setPinningId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [view, setView] = useState<"list" | "grid">("list");
 
-  // Check auth state
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
     setIsAdmin(localStorage.getItem("kaemnur_admin") === "true");
@@ -87,7 +117,6 @@ export default function CommunityPage() {
     const res = await fetch(`/api/community/topics?${query}`);
     const data = await res.json();
     setTopics(data.topics);
-    setTotal(data.total);
     setPage(data.page);
     setPageCount(data.pageCount);
     setLoading(false);
@@ -96,158 +125,349 @@ export default function CommunityPage() {
   async function fetchCounts() {
     const cats = CATEGORIES.filter((c) => c !== "All");
     const counts: Record<string, number> = {};
-    await Promise.all(cats.map(async (cat) => {
-      const res = await fetch(`/api/community/topics?category=${encodeURIComponent(cat)}&page=1`);
-      const d = await res.json();
-      counts[cat] = d.total;
-    }));
+    await Promise.all(
+      cats.map(async (cat) => {
+        const res = await fetch(`/api/community/topics?category=${encodeURIComponent(cat)}&page=1`);
+        const d = await res.json();
+        counts[cat] = d.total;
+      })
+    );
     setSubforumCounts(counts);
+  }
+
+  async function fetchStats() {
+    const res = await fetch("/api/community/stats");
+    if (res.ok) setStats(await res.json());
   }
 
   useEffect(() => {
     fetchTopics(activeCategory, 1);
     fetchCounts();
+    fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);  // intentional: only fetch on mount, category changes handled by selectCategory
+  }, []);
 
   function selectCategory(cat: string) {
     setActiveCategory(cat);
     fetchTopics(cat, 1);
   }
 
+  // Client-side search + sort over the current page of topics.
+  const visibleTopics = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = topics;
+    if (q) list = list.filter((t) => t.title.toLowerCase().includes(q));
+    const sorted = [...list].sort((a, b) => {
+      if (sort === "popular") return b._count.comments - a._count.comments;
+      const ta = new Date(a.createdAt).getTime();
+      const tb = new Date(b.createdAt).getTime();
+      return sort === "oldest" ? ta - tb : tb - ta;
+    });
+    // Pinned always float to the top regardless of sort.
+    return sorted.sort((a, b) => Number(b.isPinned) - Number(a.isPinned));
+  }, [topics, search, sort]);
+
+  const pinnedTopics = visibleTopics.filter((t) => t.isPinned);
+  const regularTopics = visibleTopics.filter((t) => !t.isPinned);
+
   function renderRow(topic: Topic) {
     const bg = getAvatarColor(topic.authorName);
     const fg = getAvatarTextColor(bg);
+    const cat = CATEGORY_STYLE[topic.category] ?? CATEGORY_STYLE.General;
+    const views = pseudoViews(topic.id, topic._count.comments);
     return (
-      <div key={topic.id} className="flex gap-3 p-4 hover:bg-card-hover">
+      <div
+        key={topic.id}
+        className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-card-hover"
+      >
         {/* Avatar */}
-        <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded text-[13px] font-bold" style={{ backgroundColor: bg, color: fg }}>
+        <span
+          className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[14px] font-bold"
+          style={{ backgroundColor: bg, color: fg }}
+        >
           {getInitial(topic.authorName)}
         </span>
+
         {/* Content */}
         <div className="min-w-0 flex-1">
-          <Link href={`/community/${topic.id}`} className="group">
-            <p className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-fg group-hover:text-accent">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/community/${topic.id}`}
+              className="truncate text-[14px] font-semibold text-fg hover:text-accent"
+            >
               {topic.title}
-              {topic.isPinned && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
-                  <Icon name="pin" size={10} />
-                  Disematkan
-                </span>
-              )}
-            </p>
-          </Link>
-          {/* Product mention badges */}
-          {topic.mentionedProducts.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {topic.mentionedProducts.map((p) => (
-                <Link key={p.id} href={`/products/${p.slug}`} className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/25">
-                  @{p.name}
-                </Link>
-              ))}
-            </div>
-          )}
-          <p className="mt-1 text-[11px] text-fg-sub">
-            by <span className="text-fg">{topic.authorName}</span> · <span className="rounded bg-line px-1.5 py-0.5 text-fg-muted">{topic.category}</span>
-          </p>
-        </div>
-        {/* Meta */}
-        <div className="flex shrink-0 flex-col items-end gap-1 text-[11px] text-fg-sub">
-          <span>{relativeTime(topic.createdAt)}</span>
-          <span className="flex items-center gap-1">
-            <Icon name="message-square" size={11} />
-            {topic._count.comments}
-          </span>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => togglePin(topic.id)}
-              disabled={pinningId === topic.id}
+            </Link>
+            {topic.isPinned && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                <Icon name="pin" size={10} />
+                Disematkan
+              </span>
+            )}
+          </div>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+            <span
               className={cn(
-                "mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50",
-                topic.isPinned ? "text-accent hover:bg-accent/10" : "text-fg-muted hover:bg-card hover:text-fg"
+                "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold",
+                cat.bg,
+                cat.text
               )}
             >
-              <Icon name="pin" size={10} />
-              {pinningId === topic.id ? "…" : topic.isPinned ? "Lepas" : "Sematkan"}
-            </button>
-          )}
+              <Icon name={cat.icon as never} size={10} />
+              {topic.category}
+            </span>
+            <span className="text-fg-sub">
+              oleh <span className="text-fg-sub">{topic.authorName}</span>
+            </span>
+            {topic.mentionedProducts.slice(0, 2).map((p) => (
+              <Link
+                key={p.id}
+                href={`/products/${p.slug}`}
+                className="rounded bg-accent/10 px-1.5 py-0.5 font-semibold text-accent hover:bg-accent/20"
+              >
+                @{p.name}
+              </Link>
+            ))}
+          </div>
         </div>
+
+        {/* Meta stats */}
+        <div className="hidden shrink-0 items-center gap-5 text-[11px] text-fg-sub sm:flex">
+          <span className="flex w-12 flex-col items-center gap-0.5">
+            <Icon name="message-square" size={14} className="text-fg-muted" />
+            <span className="font-semibold text-fg">{topic._count.comments}</span>
+          </span>
+          <span className="flex w-12 flex-col items-center gap-0.5">
+            <Icon name="eye" size={14} className="text-fg-muted" />
+            <span className="font-semibold text-fg">{formatCount(views)}</span>
+          </span>
+          <span className="flex w-20 flex-col items-end gap-0.5 text-right">
+            <span className="flex items-center gap-1 text-fg-muted">
+              <Icon name="clock" size={11} />
+              {relativeTime(topic.createdAt)}
+            </span>
+            <span className="truncate text-fg-sub">{topic.authorName}</span>
+          </span>
+        </div>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => togglePin(topic.id)}
+            disabled={pinningId === topic.id}
+            title={topic.isPinned ? "Lepas sematan" : "Sematkan"}
+            className={cn(
+              "shrink-0 rounded p-1.5 transition-colors disabled:opacity-50",
+              topic.isPinned ? "text-accent hover:bg-accent/10" : "text-fg-muted hover:bg-card hover:text-fg"
+            )}
+          >
+            <Icon name="pin" size={14} />
+          </button>
+        )}
       </div>
     );
   }
 
-  const pinnedTopics = topics.filter((t) => t.isPinned);
-  const regularTopics = topics.filter((t) => !t.isPinned);
+  function renderCard(topic: Topic) {
+    const bg = getAvatarColor(topic.authorName);
+    const fg = getAvatarTextColor(bg);
+    const cat = CATEGORY_STYLE[topic.category] ?? CATEGORY_STYLE.General;
+    const views = pseudoViews(topic.id, topic._count.comments);
+    return (
+      <Link
+        key={topic.id}
+        href={`/community/${topic.id}`}
+        className="flex flex-col gap-3 rounded-card border border-line bg-card p-4 transition-colors hover:border-accent/40 hover:bg-card-hover"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[13px] font-bold"
+            style={{ backgroundColor: bg, color: fg }}
+          >
+            {getInitial(topic.authorName)}
+          </span>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold",
+              cat.bg,
+              cat.text
+            )}
+          >
+            <Icon name={cat.icon as never} size={10} />
+            {topic.category}
+          </span>
+          {topic.isPinned && <Icon name="pin" size={12} className="ml-auto text-accent" />}
+        </div>
+        <p className="line-clamp-2 text-[14px] font-semibold text-fg">{topic.title}</p>
+        <p className="line-clamp-2 text-[12px] text-fg-sub">{topic.bodyPreview}</p>
+        <div className="mt-auto flex items-center gap-4 text-[11px] text-fg-sub">
+          <span className="flex items-center gap-1">
+            <Icon name="message-square" size={12} /> {topic._count.comments}
+          </span>
+          <span className="flex items-center gap-1">
+            <Icon name="eye" size={12} /> {formatCount(views)}
+          </span>
+          <span className="ml-auto flex items-center gap-1">
+            <Icon name="clock" size={11} /> {relativeTime(topic.createdAt)}
+          </span>
+        </div>
+      </Link>
+    );
+  }
+
+  const statCards = [
+    { label: "Topik Aktif", value: stats?.topics ?? 0, icon: "message-square", text: "text-info", box: "bg-info/15" },
+    { label: "Member Aktif", value: stats?.members ?? 0, icon: "users", text: "text-success", box: "bg-success/15" },
+    { label: "Total Post", value: stats?.posts ?? 0, icon: "file-text", text: "text-accent", box: "bg-accent/15" },
+    { label: "Total Views", value: stats?.views ?? 0, icon: "eye", text: "text-danger", box: "bg-danger/15" },
+  ];
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
       {/* Header */}
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Community</p>
           <h1 className="mt-1 text-2xl font-bold text-fg">Discussions</h1>
+          <p className="mt-1.5 text-[13px] text-fg-sub">
+            Diskusi, tanya jawab, dan berbagi informasi seputar aplikasi Kaemnur.
+          </p>
         </div>
         <button
           type="button"
           onClick={handleNewDiscussion}
-          className="inline-flex h-9 items-center gap-2 rounded-btn bg-accent px-4 text-[13px] font-semibold text-bg hover:bg-accent-hover"
+          className="inline-flex h-10 items-center gap-2 rounded-btn bg-accent px-4 text-[13px] font-semibold text-bg transition-colors hover:bg-accent-hover"
         >
-          <Icon name="plus" size={14} />
+          <Icon name="plus" size={16} />
           Start a New Discussion
         </button>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_200px]">
-        {/* Main topic list */}
+      {/* Tabs */}
+      <div className="mb-5 flex gap-1 overflow-x-auto border-b border-line">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => selectCategory(cat)}
+            className={cn(
+              "flex shrink-0 items-center gap-1.5 border-b-2 px-3 pb-3 text-[13px] font-medium transition-colors",
+              activeCategory === cat
+                ? "border-accent text-fg"
+                : "border-transparent text-fg-sub hover:text-fg"
+            )}
+          >
+            <Icon name={TAB_ICONS[cat] as never} size={14} />
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats bar */}
+      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-line bg-line lg:grid-cols-4">
+        {statCards.map((s) => (
+          <div key={s.label} className="flex items-center gap-3 bg-card px-5 py-4">
+            <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-lg", s.box, s.text)}>
+              <Icon name={s.icon as never} size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[18px] font-bold leading-none text-fg">{formatCount(s.value)}</p>
+              <p className="mt-1 text-[11px] text-fg-sub">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        {/* Main column */}
         <div>
-          {/* Filter tabs */}
-          <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line pb-px">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => selectCategory(cat)}
-                className={cn(
-                  "shrink-0 border-b-2 px-3 pb-3 text-[13px] font-medium transition-colors",
-                  activeCategory === cat
-                    ? "border-accent text-fg"
-                    : "border-transparent text-fg-sub hover:text-fg"
-                )}
+          {/* Filter bar */}
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="h-9 appearance-none rounded-btn border border-line bg-card pl-3 pr-8 text-[13px] text-fg outline-none focus:border-accent"
               >
-                {cat}
-              </button>
-            ))}
+                {SORTS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <Icon
+                name="chevron-down"
+                size={14}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted"
+              />
+            </div>
+
+            <div className="relative min-w-0 flex-1">
+              <Icon
+                name="search"
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"
+              />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari diskusi…"
+                className="h-9 w-full rounded-btn border border-line bg-card pl-9 pr-3 text-[13px] text-fg placeholder:text-fg-muted outline-none focus:border-accent"
+              />
+            </div>
+
+            <div className="flex h-9 items-center gap-0.5 rounded-btn border border-line bg-card p-0.5">
+              {(["list", "grid"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  title={v === "list" ? "Tampilan daftar" : "Tampilan grid"}
+                  className={cn(
+                    "grid h-7 w-7 place-items-center rounded transition-colors",
+                    view === v ? "bg-accent text-bg" : "text-fg-muted hover:text-fg"
+                  )}
+                >
+                  <Icon name={v === "list" ? "menu" : "grid"} size={14} />
+                </button>
+              ))}
+            </div>
           </div>
 
-          <p className="mb-3 text-[12px] text-fg-sub">Showing {total} active {total === 1 ? "topic" : "topics"}</p>
-
           {loading ? (
-            <div className="py-12 text-center text-[13px] text-fg-sub">Loading…</div>
-          ) : topics.length === 0 ? (
+            <div className="py-12 text-center text-[13px] text-fg-sub">Memuat…</div>
+          ) : visibleTopics.length === 0 ? (
             <div className="rounded-card border border-dashed border-line bg-card p-10 text-center">
-              <p className="text-[13px] text-fg-sub">No discussions yet.</p>
-              <button type="button" onClick={() => setModalOpen(true)} className="mt-3 text-[13px] font-medium text-accent hover:underline">
-                Be the first to start one →
-              </button>
+              <p className="text-[13px] text-fg-sub">
+                {search ? "Tidak ada diskusi yang cocok." : "Belum ada diskusi."}
+              </p>
+              {!search && (
+                <button
+                  type="button"
+                  onClick={handleNewDiscussion}
+                  className="mt-3 text-[13px] font-medium text-accent hover:underline"
+                >
+                  Jadilah yang pertama memulai →
+                </button>
+              )}
             </div>
+          ) : view === "grid" ? (
+            <div className="grid gap-4 sm:grid-cols-2">{visibleTopics.map(renderCard)}</div>
           ) : (
             <div className="space-y-4">
-              {/* Pinned topics */}
               {pinnedTopics.length > 0 && (
                 <div>
                   <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
                     📌 Disematkan
                   </p>
-                  <div className="divide-y divide-line rounded-card border border-accent/30 bg-card">
+                  <div className="divide-y divide-line overflow-hidden rounded-card border border-accent/30 bg-card">
                     {pinnedTopics.map(renderRow)}
                   </div>
                 </div>
               )}
-
-              {/* Regular topics */}
               {regularTopics.length > 0 && (
-                <div className="divide-y divide-line rounded-card border border-line bg-card">
+                <div className="divide-y divide-line overflow-hidden rounded-card border border-line bg-card">
                   {regularTopics.map(renderRow)}
                 </div>
               )}
@@ -256,34 +476,95 @@ export default function CommunityPage() {
 
           {/* Pagination */}
           {pageCount > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button type="button" disabled={page <= 1} onClick={() => { fetchTopics(activeCategory, page - 1); }} className="h-8 rounded-btn border border-line px-3 text-[12px] text-fg-sub hover:bg-card disabled:opacity-40">
-                ← Prev
+            <div className="mt-5 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => fetchTopics(activeCategory, page - 1)}
+                className="inline-flex h-8 items-center gap-1 rounded-btn border border-line px-3 text-[12px] text-fg-sub hover:bg-card disabled:opacity-40"
+              >
+                <Icon name="arrow-left" size={13} /> Sebelumnya
               </button>
-              <span className="text-[12px] text-fg-sub">Page {page} of {pageCount}</span>
-              <button type="button" disabled={page >= pageCount} onClick={() => { fetchTopics(activeCategory, page + 1); }} className="h-8 rounded-btn border border-line px-3 text-[12px] text-fg-sub hover:bg-card disabled:opacity-40">
-                Next →
+              <span className="text-[12px] text-fg-sub">
+                Halaman {page} dari {pageCount}
+              </span>
+              <button
+                type="button"
+                disabled={page >= pageCount}
+                onClick={() => fetchTopics(activeCategory, page + 1)}
+                className="inline-flex h-8 items-center gap-1 rounded-btn border border-line px-3 text-[12px] text-fg-sub hover:bg-card disabled:opacity-40"
+              >
+                Berikutnya <Icon name="arrow-right" size={13} />
               </button>
             </div>
           )}
         </div>
 
-        {/* Sub-forums panel */}
-        <aside>
-          <div className="sticky top-16 rounded-card border border-line bg-card p-4">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg-muted">Sub-Forums</p>
-            <ul className="space-y-2">
-              {CATEGORIES.filter((c) => c !== "All").map((cat) => (
-                <li key={cat}>
-                  <button type="button" onClick={() => selectCategory(cat)} className="flex w-full items-center justify-between gap-2 text-[13px]">
-                    <span className={cn(activeCategory === cat ? "font-semibold text-accent" : "text-fg-sub hover:text-fg")}>
-                      {cat}
-                    </span>
-                    <span className="text-[11px] text-fg-muted">{subforumCounts[cat] ?? 0}</span>
-                  </button>
-                </li>
-              ))}
+        {/* Sidebar */}
+        <aside className="space-y-5">
+          {/* Sub-Forums */}
+          <div className="rounded-card border border-line bg-card p-4">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg-muted">
+              Sub-Forums
+            </p>
+            <ul className="space-y-1">
+              {CATEGORIES.filter((c) => c !== "All").map((cat) => {
+                const style = CATEGORY_STYLE[cat] ?? CATEGORY_STYLE.General;
+                return (
+                  <li key={cat}>
+                    <button
+                      type="button"
+                      onClick={() => selectCategory(cat)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 rounded-btn px-2 py-1.5 text-[13px] transition-colors hover:bg-card-hover",
+                        activeCategory === cat && "bg-card-hover"
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className={cn("grid h-6 w-6 place-items-center rounded", style.bg, style.text)}>
+                          <Icon name={style.icon as never} size={12} />
+                        </span>
+                        <span className={cn(activeCategory === cat ? "font-semibold text-fg" : "text-fg-sub")}>
+                          {cat}
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-fg-muted">{subforumCounts[cat] ?? 0}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
+          </div>
+
+          {/* Top Contributors */}
+          <div className="rounded-card border border-line bg-card p-4">
+            <p className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg-muted">
+              <Icon name="trophy" size={12} className="text-accent" />
+              Top Contributors
+            </p>
+            {stats && stats.contributors.length > 0 ? (
+              <ul className="space-y-2.5">
+                {stats.contributors.map((c, i) => {
+                  const bg = getAvatarColor(c.name);
+                  const fg = getAvatarTextColor(bg);
+                  return (
+                    <li key={c.name} className="flex items-center gap-2.5">
+                      <span className="w-3 text-center text-[11px] font-bold text-fg-muted">{i + 1}</span>
+                      <span
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold"
+                        style={{ backgroundColor: bg, color: fg }}
+                      >
+                        {getInitial(c.name)}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{c.name}</span>
+                      <span className="text-[11px] text-fg-muted">{c.posts} post</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-[12px] text-fg-sub">Belum ada kontributor.</p>
+            )}
           </div>
         </aside>
       </div>
