@@ -72,12 +72,12 @@ export function buildLicenseDeliveryUrl(
  * so they survive the JIT scan — never compute classnames at runtime.
  */
 const PRODUCT_PALETTE = [
-  { bg: "bg-product-orange/15", fg: "text-product-orange", solid: "bg-product-orange" },
-  { bg: "bg-product-teal/15", fg: "text-product-teal", solid: "bg-product-teal" },
-  { bg: "bg-product-emerald/15", fg: "text-product-emerald", solid: "bg-product-emerald" },
-  { bg: "bg-product-violet/15", fg: "text-product-violet", solid: "bg-product-violet" },
-  { bg: "bg-product-sky/15", fg: "text-product-sky", solid: "bg-product-sky" },
-  { bg: "bg-product-rose/15", fg: "text-product-rose", solid: "bg-product-rose" },
+  { bg: "bg-chip-orange/15", fg: "text-chip-orange", solid: "bg-chip-orange" },
+  { bg: "bg-chip-teal/15", fg: "text-chip-teal", solid: "bg-chip-teal" },
+  { bg: "bg-chip-emerald/15", fg: "text-chip-emerald", solid: "bg-chip-emerald" },
+  { bg: "bg-chip-violet/15", fg: "text-chip-violet", solid: "bg-chip-violet" },
+  { bg: "bg-chip-sky/15", fg: "text-chip-sky", solid: "bg-chip-sky" },
+  { bg: "bg-chip-rose/15", fg: "text-chip-rose", solid: "bg-chip-rose" },
 ];
 
 export function productAccent(seed: string): (typeof PRODUCT_PALETTE)[number] {

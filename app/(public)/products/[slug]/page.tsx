@@ -122,62 +122,87 @@ export default async function ProductPage({
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
       {/* Breadcrumb */}
-      <nav className="mb-3 flex items-center gap-1.5 text-[13px] text-fg-sub">
+      <nav className="mb-5 flex items-center gap-1.5 text-[13px] text-fg-sub">
         <Link href="/" className="hover:text-fg">Store</Link>
+        <Icon name="chevron-right" size={12} className="text-fg-muted" />
+        <span className="text-fg-sub">{product.category}</span>
         <Icon name="chevron-right" size={12} className="text-fg-muted" />
         <span className="text-fg">{product.name}</span>
       </nav>
 
-      {/* Header */}
-      <header className="mb-5">
-        <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-fg-sub">
-          {ratingDisplay !== null ? (
-            <a href="#reviews" className="inline-flex items-center gap-1 hover:text-fg">
-              <span className="text-accent">★</span>
-              <span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span>
-              <span>· {ratingCount} ulasan</span>
-            </a>
-          ) : null}
-          <span className="rounded border border-line bg-card px-2 py-0.5">{product.category}</span>
-          <span className="rounded border border-line bg-card px-2 py-0.5">Offline-first</span>
-        </div>
-      </header>
-
-      {/* Tabs */}
-      <div className="mb-6 flex gap-6 border-b border-line">
-        {TABS.map((t) => {
-          const active = activeTab === t.key;
-          const href = t.key === "overview" ? "" : `?tab=${t.key}`;
-          return (
-            <Link
-              key={t.key}
-              href={`/products/${product.slug}${href}`}
-              className={cn(
-                "relative -mb-px border-b-2 px-1 pb-3 text-[14px] font-medium transition-colors",
-                active ? "border-accent text-fg" : "border-transparent text-fg-sub hover:text-fg"
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        {/* ───────────────────────── Left column ───────────────────────── */}
+        <div className="min-w-0 space-y-6">
+          {/* Header: logo + name + tagline + rating */}
+          <header className="flex items-start gap-4">
+            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-card border border-line bg-card">
+              <span className={cn("text-4xl font-extrabold", accent.fg)}>
+                {product.name[0]}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
+                <span className="rounded border border-line bg-card px-2 py-0.5 text-[11px] font-medium text-fg-sub">
+                  {product.category}
+                </span>
+                <span className="rounded border border-line bg-card px-2 py-0.5 font-mono text-[11px] text-fg-sub">
+                  v{product.version}
+                </span>
+              </div>
+              {product.tagline && (
+                <p className="mt-1.5 text-[14px] text-fg-sub">{product.tagline}</p>
               )}
-            >
-              {t.label}
-            </Link>
-          );
-        })}
-      </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-fg-sub">
+                {ratingDisplay !== null && (
+                  <a href="#reviews" className="inline-flex items-center gap-1 hover:text-fg">
+                    <span className="text-accent">★</span>
+                    <span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span>
+                    <span>· {ratingCount} ulasan</span>
+                  </a>
+                )}
+                <span className="text-fg-muted">·</span>
+                <span>{product.category}</span>
+                <span className="text-fg-muted">·</span>
+                <span className="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">Free</span>
+                {hasPro && (
+                  <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent">PRO</span>
+                )}
+              </div>
+            </div>
+          </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* Left column */}
-        <div className="min-w-0 space-y-8">
+          {/* Tabs */}
+          <div className="flex gap-6 border-b border-line">
+            {TABS.map((t) => {
+              const active = activeTab === t.key;
+              const href = t.key === "overview" ? "" : `?tab=${t.key}`;
+              return (
+                <Link
+                  key={t.key}
+                  href={`/products/${product.slug}${href}`}
+                  className={cn(
+                    "relative -mb-px border-b-2 px-1 pb-3 text-[14px] font-medium transition-colors",
+                    active ? "border-accent text-fg" : "border-transparent text-fg-sub hover:text-fg"
+                  )}
+                >
+                  {t.label}
+                </Link>
+              );
+            })}
+          </div>
+
           {activeTab === "overview" && (
-            <>
-              {/* 1. Screenshots */}
+            <div className="space-y-8">
+              {/* Screenshots */}
               <ScreenshotGallery
                 screenshots={product.screenshots}
                 productName={product.name}
-                accentBg={productAccent(product.slug).bg}
-                accentFg={productAccent(product.slug).fg}
+                accentBg={accent.bg}
+                accentFg={accent.fg}
               />
 
-              {/* 2. About */}
+              {/* About */}
               <section>
                 <h2 className="mb-3 text-lg font-bold text-fg">About this product</h2>
                 <p className="whitespace-pre-line text-[14px] leading-relaxed text-fg-sub">
@@ -185,91 +210,9 @@ export default async function ProductPage({
                 </p>
               </section>
 
-              {/* 3. Key features — Free vs PRO comparison table */}
-              <section>
-                <h2 className="mb-3 text-lg font-bold text-fg">Fitur Utama</h2>
-                {product.features.length === 0 ? (
-                  <p className="text-[13px] text-fg-sub">Belum ada fitur yang dicantumkan.</p>
-                ) : (
-                  <div className="overflow-hidden rounded-card border border-line">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="bg-sidebar text-[11px] font-semibold uppercase tracking-wide text-fg-muted">
-                          <th className="px-4 py-2.5 font-medium">Fitur</th>
-                          <th className="w-20 px-4 py-2.5 text-center font-medium">Free</th>
-                          <th className="w-20 px-4 py-2.5 text-center font-medium">PRO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {product.features.map((f) => (
-                          <tr key={f.id} className="border-b border-line last:border-b-0">
-                            <td className="px-4 py-2 text-[13px] font-medium text-fg">{f.text}</td>
-                            <td className="px-4 py-2 text-center text-[14px]">
-                              {f.isPro ? (
-                                <span className="text-fg-muted">—</span>
-                              ) : (
-                                <span className="font-bold text-accent">✓</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2 text-center text-[14px]">
-                              <span className="font-bold text-accent">✓</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </section>
-
-              {/* 4+5+6. Rating & Review form + reviews list */}
+              {/* Rating form + reviews carousel */}
               <ReviewSection slug={product.slug} reviewCount={product.ratings.length} />
-
-              {/* More from Kaemnur */}
-              {otherCards.length > 0 && (
-                <section>
-                  <h2 className="mb-3 text-lg font-bold text-fg">More from Kaemnur</h2>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {otherCards.map((c) => (
-                      <ProductCard key={c.slug} product={c} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Community discussions */}
-              <section>
-                <div className="mb-3 flex items-end justify-between">
-                  <h2 className="text-lg font-bold text-fg">Community Discussions</h2>
-                  <Link href="/community?category=General" className="text-[12px] font-medium text-accent hover:underline">
-                    All discussions →
-                  </Link>
-                </div>
-                {product.mentionedInTopics.length === 0 ? (
-                  <div className="rounded-card border border-dashed border-line bg-card p-6 text-center">
-                    <p className="text-[13px] text-fg-sub">No discussions yet. Be the first!</p>
-                    <Link href="/community" className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline">
-                      Start a discussion →
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-line rounded-card border border-line bg-card">
-                    {product.mentionedInTopics.map((topic) => (
-                      <Link key={topic.id} href={`/community/${topic.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-card-hover">
-                        <div className="min-w-0">
-                          <p className="truncate text-[14px] font-semibold text-fg">{topic.title}</p>
-                          <p className="text-[11px] text-fg-sub">{topic.category} · {topic.authorName}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-1 text-[11px] text-fg-sub">
-                          <Icon name="message-square" size={11} />
-                          {topic._count.comments}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </>
+            </div>
           )}
 
           {activeTab === "changelog" && (
@@ -302,18 +245,15 @@ export default async function ProductPage({
           )}
         </div>
 
-        {/* Right: install panel */}
+        {/* ───────────────────────── Right sidebar ───────────────────────── */}
         <aside className="self-start">
           <div className="sticky top-16 space-y-3">
             <div className="rounded-card border border-line bg-card p-4">
               {/* Pricing */}
               <div className="flex items-baseline gap-2">
-                {product.priceFree && <span className="text-xl font-bold text-success">Free</span>}
+                <span className="text-xl font-bold text-success">Free</span>
                 {product.priceLabel && (
-                  <span className="text-[12px] text-fg-sub">· PRO <span className="text-accent font-semibold">{product.priceLabel}</span></span>
-                )}
-                {!product.priceFree && !product.priceLabel && (
-                  <span className="text-xl font-bold text-success">Free</span>
+                  <span className="text-[12px] text-fg-sub">· PRO <span className="font-semibold text-accent">{product.priceLabel}</span></span>
                 )}
               </div>
               <p className="mt-1 flex items-center gap-1.5 text-[12px] text-success">
@@ -362,10 +302,10 @@ export default async function ProductPage({
               <dl className="grid grid-cols-2 gap-y-1.5 text-[12px]">
                 <dt className="text-fg-sub">Developer</dt>
                 <dd className="flex items-center gap-1.5 text-fg">
-                  <span className={`inline-block h-2 w-2 rounded-sm ${accent.solid}`} />
+                  <span className={cn("inline-block h-2 w-2 rounded-sm", accent.solid)} />
                   Kaemnur
                 </dd>
-                <dt className="text-fg-sub">Release</dt>
+                <dt className="text-fg-sub">Release date</dt>
                 <dd className="text-fg">
                   {new Date(product.createdAt).toLocaleDateString("en-US", {
                     month: "short", day: "numeric", year: "numeric",
@@ -376,10 +316,91 @@ export default async function ProductPage({
                 <dt className="text-fg-sub">Installs</dt>
                 <dd className="text-fg">{formatCount(product.downloadCount)}+</dd>
               </dl>
+
+              <div className="my-4 border-t border-line" />
+
+              {/* Fitur Utama — Free vs PRO comparison */}
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+                Fitur Utama
+              </p>
+              {product.features.length === 0 ? (
+                <p className="text-[12px] text-fg-sub">Belum ada fitur yang dicantumkan.</p>
+              ) : (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
+                      <th className="pb-2 font-medium">Feature</th>
+                      <th className="w-10 pb-2 text-center font-medium">Free</th>
+                      <th className="w-10 pb-2 text-center font-medium">PRO</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {product.features.map((f) => (
+                      <tr key={f.id} className="border-b border-line last:border-b-0">
+                        <td className="py-2 pr-2 text-[12px] text-fg">{f.text}</td>
+                        <td className="py-2 text-center text-[13px]">
+                          {f.isPro ? (
+                            <span className="text-fg-muted">—</span>
+                          ) : (
+                            <span className="font-bold text-accent">✓</span>
+                          )}
+                        </td>
+                        <td className="py-2 text-center text-[13px]">
+                          <span className="font-bold text-accent">✓</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </aside>
       </div>
+
+      {/* ───────────────────── Bottom: full-width sections ───────────────────── */}
+      <section className="mt-10">
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="text-lg font-bold text-fg">Community Discussions</h2>
+          <Link href="/community?category=General" className="text-[12px] font-medium text-accent hover:underline">
+            All discussions →
+          </Link>
+        </div>
+        {product.mentionedInTopics.length === 0 ? (
+          <div className="rounded-card border border-dashed border-line bg-card p-6 text-center">
+            <p className="text-[13px] text-fg-sub">No discussions yet. Be the first!</p>
+            <Link href="/community" className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline">
+              Start a discussion →
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-line rounded-card border border-line bg-card">
+            {product.mentionedInTopics.map((topic) => (
+              <Link key={topic.id} href={`/community/${topic.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-card-hover">
+                <div className="min-w-0">
+                  <p className="truncate text-[14px] font-semibold text-fg">{topic.title}</p>
+                  <p className="text-[11px] text-fg-sub">{topic.category} · {topic.authorName}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1 text-[11px] text-fg-sub">
+                  <Icon name="message-square" size={11} />
+                  {topic._count.comments}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {otherCards.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-3 text-lg font-bold text-fg">More from Kaemnur</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {otherCards.map((c) => (
+              <ProductCard key={c.slug} product={c} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
