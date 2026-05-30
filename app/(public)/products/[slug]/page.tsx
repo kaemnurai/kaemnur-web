@@ -9,6 +9,7 @@ import { ProductCard, type ProductCardData } from "@/components/product/ProductC
 import { UpgradeButton } from "@/components/sections/UpgradeButton";
 import { PlatformDownload } from "@/components/product/PlatformDownload";
 import { RatingWidget } from "@/components/product/RatingWidget";
+import { getDisplayRating } from "@/lib/rating";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -81,10 +82,10 @@ export default async function ProductPage({
   const platforms = Array.from(new Set(product.installers.map((i) => i.platform)));
   const hasPro = product.priceAmount != null;
   const totalSize = product.installers.reduce((sum, i) => sum + i.fileSize, 0);
+  const { value: ratingDisplay, count: ratingCount } = getDisplayRating(product);
   const ratingAvg = product.ratings.length > 0
     ? product.ratings.reduce((s, r) => s + r.rating, 0) / product.ratings.length
     : null;
-  const ratingDisplay = product.ratingOverride ?? ratingAvg;
   const minReq = product.requirements.find((r) => r.type === "minimum");
   const recReq = product.requirements.find((r) => r.type === "recommended");
 
@@ -133,11 +134,11 @@ export default async function ProductPage({
         <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-fg-sub">
           <span className="inline-flex items-center gap-1">
-            <Icon name="star" size={12} className="text-accent" />
+            {ratingDisplay !== null && <Icon name="star" size={12} className="text-accent" />}
             {ratingDisplay !== null ? (
-              <><span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span><span>· {product.ratings.length} rating{product.ratings.length !== 1 ? "s" : ""}</span></>
+              <><span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span><span>· {ratingCount} ulasan</span></>
             ) : (
-              <span className="text-fg-muted">No ratings yet</span>
+              <span className="text-fg-muted">Belum ada ulasan</span>
             )}
           </span>
           <span className="rounded border border-line bg-card px-2 py-0.5">{product.category}</span>

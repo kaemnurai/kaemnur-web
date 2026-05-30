@@ -30,7 +30,9 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const cover = product.screenshots[0]?.url;
   const accent = productAccent(product.slug);
 
+  // Use override if set, otherwise real average; null means no ratings → hide stars
   const displayRating = product.ratingOverride ?? product.ratingAvg;
+  const displayCount = product.ratingCount;
 
   return (
     <Link
@@ -95,7 +97,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               <>
                 <Icon name="star" size={11} className="text-accent" />
                 <span className="font-medium text-fg">{displayRating.toFixed(1)}</span>
-                <span>· {product.ratingCount}</span>
+                <span>· {displayCount}</span>
               </>
             ) : (
               <span className="text-fg-muted text-[11px]">{formatCount(product.downloadCount)} downloads</span>

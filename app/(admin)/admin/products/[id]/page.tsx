@@ -20,6 +20,7 @@ import {
   deleteProductInstaller,
   upsertRequirements,
 } from "@/app/(admin)/admin/actions";
+import { RatingsPanel } from "@/components/admin/RatingsPanel";
 
 function Panel({
   title,
@@ -284,6 +285,13 @@ export default async function EditProductPage({ params }: { params: { id: string
             {product.changelogs.length === 0 && <li className="text-[12px] text-fg-sub">No changelog entries yet.</li>}
           </ul>
         </Panel>
+
+        {/* Ratings management — spans full width */}
+        <div className="lg:col-span-2">
+          <Panel title="Manajemen Rating">
+            <RatingsPanel productId={product.id} />
+          </Panel>
+        </div>
       </div>
     </AdminShell>
   );
