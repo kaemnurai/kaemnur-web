@@ -22,6 +22,7 @@ model Product {
   name          String
   slug          String   @unique
   tagline       String? // short one-liner for hero / cards
+  logoUrl       String? // product logo image (Supabase storage); falls back to initial
   description   String
   version       String
   category      String

@@ -81,6 +81,19 @@ export async function updateProduct(form: FormData) {
   revalidatePath("/");
 }
 
+export async function saveProductLogo(id: string, logoUrl: string | null) {
+  assertAdmin();
+  const product = await prisma.product.update({
+    where: { id },
+    data: { logoUrl: logoUrl || null },
+    select: { slug: true },
+  });
+  revalidatePath(`/admin/products/${id}`);
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+  revalidatePath(`/products/${product.slug}`);
+}
+
 export async function deleteProduct(form: FormData) {
   assertAdmin();
   await prisma.product.delete({ where: { id: str(form, "id") } });

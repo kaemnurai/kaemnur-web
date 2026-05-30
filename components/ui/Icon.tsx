@@ -3,7 +3,7 @@
 
 import { cn } from "@/lib/utils";
 
-type IconName =
+export type IconName =
   | "download"
   | "check"
   | "x"
