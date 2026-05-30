@@ -47,8 +47,8 @@ export async function POST(
 
   const upserted = await prisma.productRating.upsert({
     where: { productId_userId: { productId: product.id, userId: user.id } },
-    create: { productId: product.id, userId: user.id, rating, reviewText },
-    update: { rating, reviewText },
+    create: { productId: product.id, userId: user.id, rating, ...(reviewText !== undefined && { reviewText }) },
+    update: { rating, ...(reviewText !== undefined && { reviewText }) },
     include: { user: { select: { displayName: true, avatarUrl: true } } },
   });
 
