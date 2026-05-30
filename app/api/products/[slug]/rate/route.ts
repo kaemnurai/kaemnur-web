@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 // POST /api/products/[slug]/rate
-// Body: { rating: 1-5 }
+// Body: { rating: 1-5, reviewText?: string (max 500 chars) }
 // Requires an authenticated Supabase session. Upserts one rating per user per product.
 export async function POST(
   req: NextRequest,
@@ -24,13 +24,16 @@ export async function POST(
     return NextResponse.json({ error: "Rating must be an integer 1–5." }, { status: 400 });
   }
 
+  const rawReview = typeof body?.reviewText === "string" ? body.reviewText.trim() : "";
+  const reviewText = rawReview.slice(0, 500) || null; // enforce max 500
+
   const product = await prisma.product.findUnique({
     where: { slug: params.slug },
     select: { id: true },
   });
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
 
-  // Ensure UserProfile exists (created on auth callback; create lazily here as fallback).
+  // Ensure UserProfile exists
   await prisma.userProfile.upsert({
     where: { id: user.id },
     create: {
@@ -44,11 +47,11 @@ export async function POST(
 
   const upserted = await prisma.productRating.upsert({
     where: { productId_userId: { productId: product.id, userId: user.id } },
-    create: { productId: product.id, userId: user.id, rating },
-    update: { rating },
+    create: { productId: product.id, userId: user.id, rating, reviewText },
+    update: { rating, reviewText },
+    include: { user: { select: { displayName: true, avatarUrl: true } } },
   });
 
-  // Return new aggregate
   const agg = await prisma.productRating.aggregate({
     where: { productId: product.id },
     _avg: { rating: true },
@@ -57,6 +60,7 @@ export async function POST(
 
   return NextResponse.json({
     userRating: upserted.rating,
+    userReviewText: upserted.reviewText,
     average: agg._avg.rating ?? null,
     count: agg._count.rating,
   });

@@ -31,6 +31,22 @@ body {
   display: none;
 }
 
+/* nprogress — brand orange loading bar */
+#nprogress .bar {
+  background: #F4B400 !important;
+  height: 2px !important;
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px #F4B400, 0 0 5px #F4B400 !important;
+}
+/* Disable the default spinner */
+#nprogress .spinner { display: none !important; }
+
 /* kbd-style key hint, used in search inputs (⌘K) */
 .kbd {
   display: inline-flex;

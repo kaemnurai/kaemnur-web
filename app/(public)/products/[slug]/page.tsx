@@ -8,7 +8,7 @@ import { ChangelogAccordion } from "@/components/product/ChangelogAccordion";
 import { ProductCard, type ProductCardData } from "@/components/product/ProductCard";
 import { UpgradeButton } from "@/components/sections/UpgradeButton";
 import { PlatformDownload } from "@/components/product/PlatformDownload";
-import { RatingWidget } from "@/components/product/RatingWidget";
+import { ReviewSection } from "@/components/product/ReviewSection";
 import { getDisplayRating } from "@/lib/rating";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -83,9 +83,6 @@ export default async function ProductPage({
   const hasPro = product.priceAmount != null;
   const totalSize = product.installers.reduce((sum, i) => sum + i.fileSize, 0);
   const { value: ratingDisplay, count: ratingCount } = getDisplayRating(product);
-  const ratingAvg = product.ratings.length > 0
-    ? product.ratings.reduce((s, r) => s + r.rating, 0) / product.ratings.length
-    : null;
   const minReq = product.requirements.find((r) => r.type === "minimum");
   const recReq = product.requirements.find((r) => r.type === "recommended");
 
@@ -112,7 +109,6 @@ export default async function ProductPage({
     };
   });
 
-  // Pass only what the client component needs (no full Prisma objects)
   const installerOptions = product.installers.map((i) => ({
     id: i.id,
     platform: i.platform as string,
@@ -133,14 +129,13 @@ export default async function ProductPage({
       <header className="mb-5">
         <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-fg-sub">
-          <span className="inline-flex items-center gap-1">
-            {ratingDisplay !== null && <Icon name="star" size={12} className="text-accent" />}
-            {ratingDisplay !== null ? (
-              <><span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span><span>· {ratingCount} ulasan</span></>
-            ) : (
-              <span className="text-fg-muted">Belum ada ulasan</span>
-            )}
-          </span>
+          {ratingDisplay !== null ? (
+            <a href="#reviews" className="inline-flex items-center gap-1 hover:text-fg">
+              <span className="text-accent">★</span>
+              <span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span>
+              <span>· {ratingCount} ulasan</span>
+            </a>
+          ) : null}
           <span className="rounded border border-line bg-card px-2 py-0.5">{product.category}</span>
           <span className="rounded border border-line bg-card px-2 py-0.5">Offline-first</span>
         </div>
@@ -171,7 +166,7 @@ export default async function ProductPage({
         <div className="min-w-0 space-y-8">
           {activeTab === "overview" && (
             <>
-              {/* Screenshots — Steps 7: real DB screenshots, placeholder if empty */}
+              {/* 1. Screenshots */}
               <ScreenshotGallery
                 screenshots={product.screenshots}
                 productName={product.name}
@@ -179,6 +174,7 @@ export default async function ProductPage({
                 accentFg={productAccent(product.slug).fg}
               />
 
+              {/* 2. About */}
               <section>
                 <h2 className="mb-3 text-lg font-bold text-fg">About this product</h2>
                 <p className="whitespace-pre-line text-[14px] leading-relaxed text-fg-sub">
@@ -186,6 +182,7 @@ export default async function ProductPage({
                 </p>
               </section>
 
+              {/* 3. Key features */}
               <section>
                 <h2 className="mb-3 text-lg font-bold text-fg">Key features</h2>
                 {product.features.length === 0 ? (
@@ -202,6 +199,54 @@ export default async function ProductPage({
                         </div>
                         <p className="text-[13px] font-semibold text-fg">{f.text}</p>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* 4+5+6. Rating & Review form + reviews list */}
+              <ReviewSection slug={product.slug} reviewCount={product.ratings.length} />
+
+              {/* More from Kaemnur */}
+              {otherCards.length > 0 && (
+                <section>
+                  <h2 className="mb-3 text-lg font-bold text-fg">More from Kaemnur</h2>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {otherCards.map((c) => (
+                      <ProductCard key={c.slug} product={c} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Community discussions */}
+              <section>
+                <div className="mb-3 flex items-end justify-between">
+                  <h2 className="text-lg font-bold text-fg">Community Discussions</h2>
+                  <Link href="/community?category=General" className="text-[12px] font-medium text-accent hover:underline">
+                    All discussions →
+                  </Link>
+                </div>
+                {product.mentionedInTopics.length === 0 ? (
+                  <div className="rounded-card border border-dashed border-line bg-card p-6 text-center">
+                    <p className="text-[13px] text-fg-sub">No discussions yet. Be the first!</p>
+                    <Link href="/community" className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline">
+                      Start a discussion →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-line rounded-card border border-line bg-card">
+                    {product.mentionedInTopics.map((topic) => (
+                      <Link key={topic.id} href={`/community/${topic.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-card-hover">
+                        <div className="min-w-0">
+                          <p className="truncate text-[14px] font-semibold text-fg">{topic.title}</p>
+                          <p className="text-[11px] text-fg-sub">{topic.category} · {topic.authorName}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1 text-[11px] text-fg-sub">
+                          <Icon name="message-square" size={11} />
+                          {topic._count.comments}
+                        </div>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -225,82 +270,25 @@ export default async function ProductPage({
                 </div>
               ) : (
                 <div className="grid gap-4 rounded-card border border-line bg-card p-5 sm:grid-cols-2">
-                  <RequirementsCol
-                    label="Minimum"
-                    rows={[
-                      ["OS",   minReq?.os   ?? "—"],
-                      ["CPU",  minReq?.cpu  ?? "—"],
-                      ["RAM",  minReq?.ram  ?? "—"],
-                      ["Disk", minReq?.disk ?? "—"],
-                    ]}
-                  />
-                  <RequirementsCol
-                    label="Recommended"
-                    rows={[
-                      ["OS",   recReq?.os   ?? "—"],
-                      ["CPU",  recReq?.cpu  ?? "—"],
-                      ["RAM",  recReq?.ram  ?? "—"],
-                      ["Disk", recReq?.disk ?? "—"],
-                    ]}
-                  />
+                  <RequirementsCol label="Minimum" rows={[
+                    ["OS", minReq?.os ?? "—"], ["CPU", minReq?.cpu ?? "—"],
+                    ["RAM", minReq?.ram ?? "—"], ["Disk", minReq?.disk ?? "—"],
+                  ]} />
+                  <RequirementsCol label="Recommended" rows={[
+                    ["OS", recReq?.os ?? "—"], ["CPU", recReq?.cpu ?? "—"],
+                    ["RAM", recReq?.ram ?? "—"], ["Disk", recReq?.disk ?? "—"],
+                  ]} />
                 </div>
               )}
             </section>
           )}
-
-          {/* More from Kaemnur */}
-          {otherCards.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-lg font-bold text-fg">More from Kaemnur</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {otherCards.map((c) => (
-                  <ProductCard key={c.slug} product={c} />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Step 8: Community discussions mentioning this product */}
-          <section>
-            <div className="mb-3 flex items-end justify-between">
-              <h2 className="text-lg font-bold text-fg">Community Discussions</h2>
-              <Link
-                href={`/community?category=General`}
-                className="text-[12px] font-medium text-accent hover:underline"
-              >
-                All discussions →
-              </Link>
-            </div>
-            {product.mentionedInTopics.length === 0 ? (
-              <div className="rounded-card border border-dashed border-line bg-card p-6 text-center">
-                <p className="text-[13px] text-fg-sub">No discussions yet. Be the first!</p>
-                <Link href="/community" className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline">
-                  Start a discussion →
-                </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-line rounded-card border border-line bg-card">
-                {product.mentionedInTopics.map((topic) => (
-                  <Link key={topic.id} href={`/community/${topic.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-card-hover">
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-semibold text-fg">{topic.title}</p>
-                      <p className="text-[11px] text-fg-sub">{topic.category} · {topic.authorName}</p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1 text-[11px] text-fg-sub">
-                      <Icon name="message-square" size={11} />
-                      {topic._count.comments}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
         </div>
 
         {/* Right: install panel */}
         <aside className="self-start">
           <div className="sticky top-16 space-y-3">
             <div className="rounded-card border border-line bg-card p-4">
+              {/* Pricing */}
               <div className="flex items-baseline gap-2">
                 {product.priceFree && <span className="text-xl font-bold text-success">Free</span>}
                 {product.priceLabel && (
@@ -315,21 +303,17 @@ export default async function ProductPage({
                 Verified · Offline-first
               </p>
 
-              {/* Real ratings widget */}
-              <div className="mt-2">
-                <RatingWidget
-                  slug={product.slug}
-                  initialAverage={ratingAvg}
-                  initialCount={product.ratings.length}
-                  initialRatingOverride={product.ratingOverride}
-                />
-              </div>
+              {/* Display-only rating — click scrolls to #reviews */}
+              {ratingDisplay !== null && (
+                <a href="#reviews" className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-fg-sub hover:text-fg">
+                  <span className="text-accent">{"★".repeat(Math.round(ratingDisplay))}<span className="text-fg-muted/30">{"★".repeat(5 - Math.round(ratingDisplay))}</span></span>
+                  <span className="font-semibold text-fg">{ratingDisplay.toFixed(1)}</span>
+                  <span>· {ratingCount} ulasan</span>
+                </a>
+              )}
 
-              {/* Step 6: platform selector + download button */}
-              <PlatformDownload
-                productId={product.id}
-                installers={installerOptions}
-              />
+              {/* Download */}
+              <PlatformDownload productId={product.id} installers={installerOptions} />
 
               {hasPro && (
                 <UpgradeButton
@@ -344,19 +328,13 @@ export default async function ProductPage({
               <div className="my-4 border-t border-line" />
 
               <InfoRow icon="monitor" label="Platform">
-                {platforms.length > 0
-                  ? platforms.map((p) => PLATFORM_LABELS[p]).join(" · ")
-                  : "—"}
+                {platforms.length > 0 ? platforms.map((p) => PLATFORM_LABELS[p]).join(" · ") : "—"}
               </InfoRow>
               <InfoRow icon="package" label="Size">
                 {totalSize > 0 ? `${formatBytes(totalSize)} download` : "—"}
               </InfoRow>
-              <InfoRow icon="shield" label="License">
-                Offline-first · No telemetry
-              </InfoRow>
-              <InfoRow icon="wifi-off" label="Works offline">
-                Optional E2E sync
-              </InfoRow>
+              <InfoRow icon="shield" label="License">Offline-first · No telemetry</InfoRow>
+              <InfoRow icon="wifi-off" label="Works offline">Optional E2E sync</InfoRow>
 
               <div className="my-4 border-t border-line" />
 
@@ -372,9 +350,7 @@ export default async function ProductPage({
                 <dt className="text-fg-sub">Release</dt>
                 <dd className="text-fg">
                   {new Date(product.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
+                    month: "short", day: "numeric", year: "numeric",
                   })}
                 </dd>
                 <dt className="text-fg-sub">Version</dt>
@@ -390,11 +366,7 @@ export default async function ProductPage({
   );
 }
 
-function InfoRow({
-  icon,
-  label,
-  children,
-}: {
+function InfoRow({ icon, label, children }: {
   icon: React.ComponentProps<typeof Icon>["name"];
   label: string;
   children: React.ReactNode;
@@ -410,18 +382,10 @@ function InfoRow({
   );
 }
 
-function RequirementsCol({
-  label,
-  rows,
-}: {
-  label: string;
-  rows: [string, string][];
-}) {
+function RequirementsCol({ label, rows }: { label: string; rows: [string, string][] }) {
   return (
     <div>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-        {label}
-      </p>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">{label}</p>
       <dl className="grid grid-cols-[60px_1fr] gap-y-1.5 text-[12px]">
         {rows.map(([k, v]) => (
           <span key={k} className="contents">

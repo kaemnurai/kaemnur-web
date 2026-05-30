@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,7 +24,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="bg-bg font-sans text-fg antialiased">{children}</body>
+      <body className="bg-bg font-sans text-fg antialiased">
+        {/* ProgressBar uses useSearchParams — must be inside Suspense */}
+        <Suspense fallback={null}>
+          <ProgressBar />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }
