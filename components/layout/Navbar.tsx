@@ -248,10 +248,6 @@ export function Navbar() {
               </Link>
             </>
           )}
-          {/* Admin quick link (always visible) */}
-          <Link href="/admin" className="ml-1 grid h-7 w-7 place-items-center rounded-btn text-fg-muted hover:bg-card hover:text-fg" title="Admin">
-            <Icon name="layout-dashboard" size={14} />
-          </Link>
         </div>
       </div>
     </header>
