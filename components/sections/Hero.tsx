@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
-import { formatCount, productAccent } from "@/lib/utils";
+import { productAccent } from "@/lib/utils";
 
 export type HeroProduct = {
   id: string;
@@ -16,6 +16,7 @@ export type HeroProduct = {
   ratingDisplay: number | null;
   ratingCount: number;
   screenshots: { id: string; url: string }[];
+  features: { text: string }[];
   installerPlatforms: string[];
   primaryInstallerId: string | null;
 };
@@ -25,6 +26,14 @@ const PLATFORM_LABEL: Record<string, string> = {
   MAC: "macOS",
   LINUX: "Linux",
 };
+
+// Split "KaemDocs" → ["Kaem", "Docs"] for the white/orange wordmark.
+function splitName(name: string): [string, string] {
+  if (name.toLowerCase().startsWith("kaem") && name.length > 4) {
+    return [name.slice(0, 4), name.slice(4)];
+  }
+  return [name, ""];
+}
 
 export function Hero({ product }: { product: HeroProduct | null }) {
   if (!product) {
@@ -40,8 +49,10 @@ export function Hero({ product }: { product: HeroProduct | null }) {
   }
 
   const main = product.screenshots[0];
-  const thumbs = product.screenshots.slice(1, 5);
   const accent = productAccent(product.slug);
+  const [namePrefix, nameSuffix] = splitName(product.name);
+  const features = product.features.slice(0, 6);
+
   const platformLabels = product.installerPlatforms
     .map((p) => PLATFORM_LABEL[p] ?? p)
     .join(" · ");
@@ -51,128 +62,96 @@ export function Hero({ product }: { product: HeroProduct | null }) {
     : "/download";
 
   return (
-    <section className="rounded-card border border-line bg-card p-6">
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        {/* LEFT: screenshot + title + stats */}
+    <section className="relative overflow-hidden rounded-card border border-line bg-gradient-to-br from-[#12161f] via-card to-[#0c0f14]">
+      <div className="grid items-center gap-8 p-6 lg:grid-cols-[1fr_minmax(0,52%)] lg:p-8">
+        {/* LEFT: copy */}
         <div className="min-w-0">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
+            <Icon name="sparkles" size={11} />
             New on Kaemnur
-          </p>
+          </span>
 
-          {/* Main screenshot */}
-          <Link
-            href={`/products/${product.slug}`}
-            className="group relative block overflow-hidden rounded-btn border border-line bg-bg"
-          >
-            <div className="aspect-video max-h-[420px] w-full">
-              {main ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={main.url}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className={`grid h-full w-full place-items-center ${accent.bg}`}>
-                  <span className={`text-7xl font-extrabold ${accent.fg}`}>
-                    {product.name[0]}
-                  </span>
-                </div>
-              )}
-            </div>
-          </Link>
-
-          {/* Title + tagline */}
-          <h1 className="mt-5 text-4xl font-bold tracking-tight text-fg md:text-5xl">
-            {product.name}
+          <h1 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
+            <span className="text-fg">{namePrefix}</span>
+            <span className="text-accent">{nameSuffix}</span>
           </h1>
-          {product.tagline && (
-            <p className="mt-2 text-[15px] text-fg">{product.tagline}</p>
-          )}
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-fg-sub">
-            {product.description}
-          </p>
 
-          {/* Stat row */}
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] text-fg-sub">
-            <span className="inline-flex items-center gap-1.5">
-              {product.ratingDisplay !== null ? (
-                <>
-                  <Icon name="star" size={13} className="text-accent" />
-                  <span className="font-medium text-fg">{product.ratingDisplay.toFixed(1)}</span>
-                  <span>· {product.ratingCount} rating{product.ratingCount !== 1 ? "s" : ""}</span>
-                </>
-              ) : (
-                <span className="text-fg-muted">No ratings yet</span>
-              )}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Icon name="download" size={13} />
-              <span className="font-medium text-fg">
-                {formatCount(product.downloadCount)}+
-              </span>
-              <span>installs</span>
-            </span>
-            {platformLabels && (
-              <span className="inline-flex items-center gap-1.5">
-                <Icon name="monitor" size={13} />
-                <span>{platformLabels}</span>
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5 text-fg-sub">
-              <span className="rounded bg-bg px-1.5 py-0.5 font-mono text-[11px] text-fg">
-                v{product.version}
-              </span>
-              <span>today</span>
-            </span>
+          {product.tagline && (
+            <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-fg-sub">
+              {product.tagline}
+            </p>
+          )}
+
+          {/* Feature checklist — two columns */}
+          {features.length > 0 && (
+            <ul className="mt-5 grid max-w-xl gap-x-6 gap-y-2 sm:grid-cols-2">
+              {features.map((f, i) => (
+                <li key={i} className="flex items-start gap-2 text-[13px] text-fg-sub">
+                  <Icon name="check" size={14} strokeWidth={3} className="mt-0.5 shrink-0 text-accent" />
+                  <span className="min-w-0">{f.text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Actions */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              href={downloadHref}
+              className="inline-flex h-11 items-center gap-2 rounded-btn bg-accent px-5 text-[14px] font-semibold text-bg hover:bg-accent-hover"
+            >
+              <Icon name="download" size={16} />
+              Install Gratis
+            </Link>
+            <Link
+              href={`/products/${product.slug}`}
+              className="inline-flex h-11 items-center gap-2 rounded-btn border border-line bg-card/60 px-5 text-[14px] font-medium text-fg hover:border-fg-muted"
+            >
+              Lihat Detail
+            </Link>
           </div>
 
-          {/* Thumbnail strip */}
-          {thumbs.length > 0 && (
-            <div className="mt-5 flex gap-2">
-              {thumbs.map((t) => (
-                <div
-                  key={t.id}
-                  className="h-14 w-24 shrink-0 overflow-hidden rounded-btn border border-line bg-bg"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={t.url} alt="" className="h-full w-full object-cover opacity-80" />
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Info row */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-fg-sub">
+            {product.priceFree && <span className="font-semibold text-success">Free</span>}
+            {product.priceLabel && (
+              <>
+                <span className="text-fg-muted">·</span>
+                <span>PRO from <span className="font-semibold text-accent">{product.priceLabel}</span></span>
+              </>
+            )}
+            {platformLabels && (
+              <>
+                <span className="text-fg-muted">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon name="monitor" size={12} />
+                  {platformLabels}
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT: install panel */}
-        <aside className="self-start rounded-btn border border-line bg-bg p-4">
-          <div className="flex items-baseline gap-2">
-            {product.priceFree && <span className="text-xl font-bold text-success">Free</span>}
-            {product.priceLabel && (
-              <span className="text-[12px] text-fg-sub">· PRO from <span className="text-accent font-semibold">{product.priceLabel}</span></span>
-            )}
-            {!product.priceFree && !product.priceLabel && (
-              <span className="text-xl font-bold text-success">Free</span>
+        {/* RIGHT: app mockup screenshot */}
+        <Link
+          href={`/products/${product.slug}`}
+          className="group relative block overflow-hidden rounded-card border border-line bg-bg shadow-card-lg"
+        >
+          <div className="aspect-[16/10] max-h-[360px] w-full">
+            {main ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={main.url}
+                alt={product.name}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <div className={`grid h-full w-full place-items-center ${accent.bg}`}>
+                <span className={`text-7xl font-extrabold ${accent.fg}`}>{product.name[0]}</span>
+              </div>
             )}
           </div>
-          <p className="mt-0.5 text-[12px] text-fg-sub">
-            {product.category} · Offline-first
-          </p>
-
-          <Link
-            href={downloadHref}
-            className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-btn bg-accent text-[13px] font-semibold text-bg hover:bg-accent-hover"
-          >
-            <Icon name="download" size={15} />
-            Install
-          </Link>
-
-          <Link
-            href={`/products/${product.slug}`}
-            className="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-btn border border-line text-[12px] font-medium text-fg-sub hover:border-fg-sub hover:text-fg"
-          >
-            View details
-          </Link>
-        </aside>
+        </Link>
       </div>
     </section>
   );

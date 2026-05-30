@@ -66,7 +66,7 @@ export function PublicSidebar({
   );
 
   return (
-    <aside className="sticky top-12 hidden h-[calc(100vh-3rem)] w-[200px] shrink-0 overflow-y-auto border-r border-line bg-sidebar lg:block">
+    <aside className="sticky top-12 hidden h-[calc(100vh-3rem)] w-[180px] shrink-0 overflow-y-auto border-r border-line bg-bg lg:block">
       <div className="flex flex-col gap-5 px-3 py-5 text-[13px]">
         {/* YOU */}
         <Section label="YOU">

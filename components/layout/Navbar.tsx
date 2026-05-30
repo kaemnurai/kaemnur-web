@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -152,16 +151,25 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 h-12 border-b border-line bg-sidebar">
       <div className="flex h-full items-center gap-6 px-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 pr-2 text-fg" aria-label="Kaemnur home">
-          <Image src="/logo-dark.png" alt="" width={28} height={28} priority className="h-7 w-7 object-contain" />
+        {/* Logo — circular yellow badge with K */}
+        <Link href="/" className="flex shrink-0 items-center gap-2 pr-2 text-fg" aria-label="Kaemnur home">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-accent text-[15px] font-extrabold text-bg">K</span>
           <span className="text-[15px] font-bold tracking-tight">Kaemnur</span>
         </Link>
 
-        {/* Center tabs — horizontally centered in the remaining space */}
-        <nav className="flex flex-1 items-center justify-center gap-6">
+        {/* Center tabs — horizontally centered, active item gets a yellow underline */}
+        <nav className="flex h-full flex-1 items-center justify-center gap-6">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className={cn("text-[14px] font-medium transition-colors", isActive(t.href) ? "text-fg" : "text-fg-sub hover:text-fg")}>
+            <Link
+              key={t.href}
+              href={t.href}
+              className={cn(
+                "flex h-full items-center border-b-2 text-[14px] font-medium transition-colors",
+                isActive(t.href)
+                  ? "border-accent text-fg"
+                  : "border-transparent text-fg-sub hover:text-fg"
+              )}
+            >
               {t.label}
             </Link>
           ))}
@@ -169,7 +177,7 @@ export function Navbar() {
 
         {/* Search (center-right) */}
         <div className="relative hidden w-full max-w-xs shrink-0 md:block" ref={wrapRef}>
-          <label className="flex h-9 items-center gap-2 rounded-btn border border-line bg-bg px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
+          <label className="flex h-9 items-center gap-2 rounded-btn border border-line bg-card px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
             <Icon name="search" size={14} className="shrink-0 text-fg-muted" />
             <input type="search" placeholder="Search products" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitSearch(); } }} className="flex-1 bg-transparent outline-none placeholder:text-fg-muted" />
             {loading ? <span className="kbd opacity-60">…</span> : <span className="kbd">⌘K</span>}

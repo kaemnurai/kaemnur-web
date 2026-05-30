@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/ui/Icon";
 import { productAccent, formatCount } from "@/lib/utils";
 
 export type TopProduct = {
@@ -15,8 +16,16 @@ export function TopDownloaded({ products }: { products: TopProduct[] }) {
   return (
     <section className="rounded-card border border-line bg-card">
       <header className="border-b border-line px-4 py-3">
-        <h2 className="text-[14px] font-semibold text-fg">Top 10 Aplikasi Terpopuler</h2>
-        <p className="text-[12px] text-fg-sub">Berdasarkan jumlah unduhan</p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Icon name="trophy" size={14} className="text-accent" />
+            <span className="text-[14px] font-semibold text-fg">Top 10 Aplikasi Terpopuler</span>
+          </div>
+          <Link href="/download" className="text-[12px] font-medium text-accent hover:underline">
+            Lihat semua
+          </Link>
+        </div>
+        <p className="mt-0.5 text-[12px] text-fg-sub">Berdasarkan jumlah unduhan</p>
       </header>
       <ul className="divide-y divide-line">
         {products.map((p, i) => {

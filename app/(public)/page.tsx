@@ -66,6 +66,7 @@ export default async function LandingPage({
         screenshots: { orderBy: { order: "asc" } },
         installers: { orderBy: { createdAt: "desc" } },
         ratings: { select: { rating: true } },
+        features: { select: { text: true }, orderBy: { isPro: "asc" } },
       },
     }),
     prisma.changelog.findMany({
@@ -105,6 +106,7 @@ export default async function LandingPage({
         ratingDisplay: featuredRaw.ratingOverride ?? featuredRatingAvg,
         ratingCount: featuredRaw.ratings.length,
         screenshots: featuredRaw.screenshots,
+        features: featuredRaw.features,
         installerPlatforms: Array.from(new Set(featuredRaw.installers.map((i) => i.platform))),
         primaryInstallerId: featuredRaw.installers[0]?.id ?? null,
       }
@@ -132,10 +134,6 @@ export default async function LandingPage({
       screenshots: p.screenshots,
     };
   });
-
-  const editorialPicks = cards.filter((c) => c.isFeatured);
-  const editorialSlugs = new Set(editorialPicks.map((c) => c.slug));
-  const otherProducts = cards.filter((c) => !editorialSlugs.has(c.slug));
 
   const updates: RecentUpdate[] = recentChangelogs.map((c) => ({
     id: c.id,
@@ -187,9 +185,10 @@ export default async function LandingPage({
     );
   }
 
-  return (
-    <div className="space-y-10 px-4 py-6 lg:px-8 lg:py-8">
-      {hasFilters && (
+  // ── Filtered view (category / pricing / platform) — show matching grid ──
+  if (hasFilters) {
+    return (
+      <div className="space-y-6 px-4 py-6 lg:px-8 lg:py-8">
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
           <span className="text-fg-sub">Filtered by:</span>
           {categoryFilter && <Chip label={categoryFilter} href={hrefWithout("category", categoryFilter)} />}
@@ -200,36 +199,30 @@ export default async function LandingPage({
             <Chip key={`pf-${v}`} label={v} href={hrefWithout("platform", v)} />
           ))}
         </div>
-      )}
+        {cards.length === 0 ? (
+          <div className="rounded-card border border-dashed border-line bg-card p-12 text-center text-[13px] text-fg-sub">
+            No products match the current filters.
+          </div>
+        ) : (
+          <ProductSection
+            eyebrow={categoryFilter ?? "Browse"}
+            title={`${cards.length} ${cards.length === 1 ? "product" : "products"}`}
+            products={cards}
+          />
+        )}
+      </div>
+    );
+  }
 
+  // ── Default landing — hero + two-column Recent updates / Top 10 ──
+  return (
+    <div className="space-y-8 px-4 py-6 lg:px-8 lg:py-8">
       <Hero product={heroProduct} />
 
-      {editorialPicks.length > 0 && (
-        <ProductSection
-          eyebrow="Kaemnur Picks"
-          title="Featured products"
-          subtitle="Curated this month by the Kaemnur team."
-          seeAllHref="/download"
-          products={editorialPicks}
-        />
-      )}
-
-      {otherProducts.length > 0 ? (
-        <ProductSection
-          eyebrow="All products"
-          title="Browse the catalog"
-          subtitle="Every Kaemnur app is free to download. Upgrade to PRO when you want more."
-          products={otherProducts}
-        />
-      ) : products.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line bg-card p-12 text-center text-[13px] text-fg-sub">
-          No products match the current filters.
-        </div>
-      ) : null}
-
-      <RecentUpdates updates={updates} />
-
-      <TopDownloaded products={topProducts} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RecentUpdates updates={updates} />
+        <TopDownloaded products={topProducts} />
+      </div>
     </div>
   );
 }
