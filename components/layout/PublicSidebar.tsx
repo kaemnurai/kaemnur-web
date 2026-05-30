@@ -35,17 +35,31 @@ export function PublicSidebar({
   const params = useSearchParams();
   const router = useRouter();
   const currentCategory = params.get("category");
-  const currentPricing = params.get("pricing");
-  const currentPlatform = params.get("platform");
 
-  const setParam = useCallback(
-    (key: string, value: string | null) => {
+  const parseList = useCallback(
+    (key: string) =>
+      (params.get(key) ?? "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+    [params]
+  );
+  const pricingValues = parseList("pricing");
+  const platformValues = parseList("platform");
+
+  // Toggle a value within a comma-separated multi-select param (Feature 19)
+  const toggleParam = useCallback(
+    (key: string, value: string) => {
       const next = new URLSearchParams(params.toString());
-      if (value === null || next.get(key) === value) {
-        next.delete(key);
-      } else {
-        next.set(key, value);
-      }
+      const current = (next.get(key) ?? "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      const updated = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      if (updated.length) next.set(key, updated.join(","));
+      else next.delete(key);
       router.push(`/?${next.toString()}`);
     },
     [params, router]
@@ -90,11 +104,11 @@ export function PublicSidebar({
             <p className="mb-1.5 text-[10px] font-semibold text-fg-muted">Pricing</p>
             <ul className="space-y-1">
               {PRICING_OPTIONS.map((opt) => {
-                const checked = currentPricing === opt.value;
+                const checked = pricingValues.includes(opt.value);
                 return (
                   <li key={opt.value}>
                     <label className={cn("flex cursor-pointer items-center gap-2 rounded-btn px-1 py-1 text-[12px] hover:bg-card/60", checked ? "text-fg" : "text-fg-sub")}>
-                      <FilterCheckbox checked={checked} onChange={() => setParam("pricing", opt.value)} />
+                      <FilterCheckbox checked={checked} onChange={() => toggleParam("pricing", opt.value)} />
                       {opt.label}
                     </label>
                   </li>
@@ -106,11 +120,11 @@ export function PublicSidebar({
             <p className="mb-1.5 text-[10px] font-semibold text-fg-muted">Platform</p>
             <ul className="space-y-1">
               {PLATFORM_OPTIONS.map((opt) => {
-                const checked = currentPlatform === opt.value;
+                const checked = platformValues.includes(opt.value);
                 return (
                   <li key={opt.value}>
                     <label className={cn("flex cursor-pointer items-center gap-2 rounded-btn px-1 py-1 text-[12px] hover:bg-card/60", checked ? "text-fg" : "text-fg-sub")}>
-                      <FilterCheckbox checked={checked} onChange={() => setParam("platform", opt.value)} />
+                      <FilterCheckbox checked={checked} onChange={() => toggleParam("platform", opt.value)} />
                       {opt.label}
                     </label>
                   </li>
@@ -118,7 +132,7 @@ export function PublicSidebar({
               })}
             </ul>
           </div>
-          {(currentPricing || currentPlatform) && (
+          {(pricingValues.length > 0 || platformValues.length > 0) && (
             <button
               type="button"
               onClick={() => {

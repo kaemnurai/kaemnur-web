@@ -6,6 +6,7 @@ import { AdminTopBar } from "@/components/admin/AdminTopBar";
 import { GenerateLicenseModal } from "@/components/admin/GenerateLicenseModal";
 import { LicenseFilters } from "@/components/admin/LicenseFilters";
 import { LicenseRowActions } from "@/components/admin/LicenseRowActions";
+import { LicenseAssign } from "@/components/admin/LicenseAssign";
 import { maskLicenseKey } from "@/lib/license";
 import { PLATFORM_LABELS } from "@/lib/utils";
 
@@ -58,7 +59,10 @@ export default async function AdminLicensesPage({
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { product: { select: { name: true } } },
+      include: {
+        product: { select: { name: true } },
+        user: { select: { email: true } },
+      },
     }),
     prisma.license.count({ where: { isActivated: true } }),
   ]);
@@ -100,6 +104,7 @@ export default async function AdminLicensesPage({
                   <th className="px-4 py-3 font-medium">Kunci Lisensi</th>
                   <th className="px-4 py-3 font-medium">Pembeli</th>
                   <th className="px-4 py-3 font-medium">WhatsApp</th>
+                  <th className="px-4 py-3 font-medium">Akun</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">ID Perangkat</th>
                   <th className="px-4 py-3 font-medium">Platform</th>
@@ -118,6 +123,9 @@ export default async function AdminLicensesPage({
                       </td>
                       <td className="px-4 py-3 text-fg">{l.buyerName}</td>
                       <td className="px-4 py-3 text-fg-sub">{l.buyerWhatsapp}</td>
+                      <td className="px-4 py-3">
+                        <LicenseAssign licenseId={l.id} linkedEmail={l.user?.email ?? null} />
+                      </td>
                       <td className="px-4 py-3">
                         {kind === "aktif" && (
                           <span className="inline-flex items-center gap-1.5 rounded bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">

@@ -42,7 +42,7 @@ export async function createProduct(form: FormData) {
   assertAdmin();
   const name = str(form, "name");
   const slug = str(form, "slug") || slugify(name);
-  await prisma.product.create({
+  const created = await prisma.product.create({
     data: {
       name,
       slug,
@@ -56,6 +56,8 @@ export async function createProduct(form: FormData) {
   });
   revalidatePath("/admin/products");
   revalidatePath("/");
+  // Continue to the edit page so media, installers and features can be added.
+  redirect(`/admin/products/${created.id}`);
 }
 
 export async function updateProduct(form: FormData) {
@@ -227,6 +229,30 @@ export async function deleteLicense(form: FormData) {
   assertAdmin();
   await prisma.license.delete({ where: { id: str(form, "id") } });
   revalidatePath("/admin/licenses");
+}
+
+// Link a license to a Kaemnur account by email (so it shows in /account).
+// Empty email unlinks. Throws if no account matches the email.
+export async function assignLicenseUser(form: FormData) {
+  assertAdmin();
+  const id = str(form, "id");
+  const email = str(form, "email").toLowerCase();
+
+  let userId: string | null = null;
+  if (email) {
+    const profile = await prisma.userProfile.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (!profile) {
+      throw new Error(`Tidak ada akun terdaftar dengan email "${email}".`);
+    }
+    userId = profile.id;
+  }
+
+  await prisma.license.update({ where: { id }, data: { userId } });
+  revalidatePath("/admin/licenses");
+  revalidatePath("/account");
 }
 
 // ─── Installers (per-product, from product edit page) ──────────────────

@@ -1,16 +1,33 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { AdminTopBar } from "@/components/admin/AdminTopBar";
-import { Input, Textarea } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
+import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { formatCount, formatDate, productAccent } from "@/lib/utils";
-import { createProduct } from "@/app/(admin)/admin/actions";
+import { deleteProduct } from "@/app/(admin)/admin/actions";
 
 export const metadata = { title: "Admin · Products" };
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
+  const q = (searchParams.q ?? "").trim();
+
+  const where: Prisma.ProductWhereInput = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { category: { contains: q, mode: "insensitive" } },
+        ],
+      }
+    : {};
+
   const products = await prisma.product.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { installers: true, licenses: true } } },
   });
@@ -21,53 +38,45 @@ export default async function AdminProductsPage() {
         eyebrow="Workspace"
         title="Products"
         subtitle={`${products.length} ${products.length === 1 ? "product" : "products"} in the catalog`}
+        actions={
+          <Link
+            href="/admin/products/new"
+            className="inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover"
+          >
+            <Icon name="plus" size={13} />
+            Produk Baru
+          </Link>
+        }
       />
 
-      <div className="grid gap-5 p-6 lg:grid-cols-[320px_1fr]">
-        {/* Create form */}
-        <div className="rounded-card border border-line bg-card p-5">
-          <h2 className="mb-1 text-[14px] font-semibold text-fg">New product</h2>
-          <p className="mb-4 text-[12px] text-fg-sub">
-            You can edit screenshots, features and changelogs after creating.
-          </p>
-          <form action={createProduct} className="space-y-3">
-            <Input id="name" name="name" label="Name" required />
-            <Input id="slug" name="slug" label="Slug (optional)" placeholder="auto from name" />
-            <Input id="category" name="category" label="Category" defaultValue="Productivity" />
-            <Input id="version" name="version" label="Version" defaultValue="1.0.0" />
-            <Input id="tagline" name="tagline" label="Tagline" />
-            <Textarea id="description" name="description" label="Description" required />
-            <label className="flex items-center gap-2 text-[13px] text-fg">
-              <input type="checkbox" name="isFeatured" className="h-4 w-4 accent-[#F4B400]" />
-              Featured on landing page
-            </label>
-            {/* Pricing */}
-            <div className="border-t border-line pt-3">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">Pricing</p>
-              <label className="flex items-center gap-2 text-[13px] text-fg">
-                <input type="checkbox" name="priceFree" defaultChecked className="h-4 w-4 accent-[#F4B400]" />
-                Free tier available
-              </label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Input id="c-priceAmount" name="priceAmount" type="number" label="PRO price (Rp)" placeholder="99000" />
-                <Input id="c-priceLabel" name="priceLabel" label="Display label" placeholder="Rp 99.000" />
-              </div>
-            </div>
-            <button
-              type="submit"
-              className="flex h-10 w-full items-center justify-center gap-1.5 rounded-btn bg-accent text-[13px] font-semibold text-bg hover:bg-accent-hover"
-            >
-              <Icon name="plus" size={13} />
-              Create product
-            </button>
-          </form>
-        </div>
+      <div className="space-y-4 p-6">
+        {/* Search */}
+        <form method="GET" className="flex gap-2">
+          <label className="flex h-9 flex-1 items-center gap-2 rounded-btn border border-line bg-bg px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
+            <Icon name="search" size={14} className="shrink-0 text-fg-muted" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="Cari produk berdasarkan nama atau kategori…"
+              className="flex-1 bg-transparent outline-none placeholder:text-fg-muted"
+            />
+          </label>
+          <button type="submit" className="h-9 rounded-btn border border-line px-4 text-[12px] font-medium text-fg-sub hover:border-fg-muted hover:text-fg">
+            Cari
+          </button>
+          {q && (
+            <Link href="/admin/products" className="inline-flex h-9 items-center rounded-btn px-3 text-[12px] font-medium text-fg-muted hover:text-fg">
+              Reset
+            </Link>
+          )}
+        </form>
 
         {/* Products table */}
         <section className="rounded-card border border-line bg-card">
           {products.length === 0 ? (
             <p className="px-4 py-12 text-center text-[13px] text-fg-sub">
-              No products yet — use the form to add your first one.
+              {q ? `Tidak ada produk yang cocok dengan “${q}”.` : "Belum ada produk — klik “Produk Baru” untuk menambah."}
             </p>
           ) : (
             <table className="w-full text-left text-[13px]">
@@ -78,7 +87,7 @@ export default async function AdminProductsPage() {
                   <th className="px-4 py-3 font-medium">Installers</th>
                   <th className="px-4 py-3 font-medium">Licenses</th>
                   <th className="px-4 py-3 font-medium">Downloads</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-4 py-3 text-right font-medium">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -109,17 +118,27 @@ export default async function AdminProductsPage() {
                       <td className="px-4 py-3 text-fg-sub">{p.category}</td>
                       <td className="px-4 py-3 text-fg">{p._count.installers}</td>
                       <td className="px-4 py-3 text-fg">{p._count.licenses}</td>
-                      <td className="px-4 py-3 text-fg">
-                        {formatCount(p.downloadCount)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/admin/products/${p.id}`}
-                          className="inline-flex h-7 items-center gap-1 rounded px-2 text-[12px] font-medium text-accent hover:underline"
-                        >
-                          Edit
-                          <Icon name="arrow-right" size={11} />
-                        </Link>
+                      <td className="px-4 py-3 text-fg">{formatCount(p.downloadCount)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/products/${p.id}`}
+                            className="inline-flex h-7 items-center gap-1 rounded px-2 text-[12px] font-medium text-accent hover:bg-accent/10"
+                          >
+                            <Icon name="edit" size={11} />
+                            Edit
+                          </Link>
+                          <form action={deleteProduct}>
+                            <input type="hidden" name="id" value={p.id} />
+                            <ConfirmSubmit
+                              confirm={`Hapus "${p.name}" beserta semua datanya?`}
+                              className="text-danger hover:bg-danger/10"
+                            >
+                              <Icon name="trash" size={11} />
+                              Hapus
+                            </ConfirmSubmit>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -8,28 +8,51 @@ export default async function LandingPage({
   searchParams,
 }: {
   searchParams: {
+    q?: string;         // free-text search — Feature 18
     category?: string;
     pricing?: string;   // "free" | "pro"  — Step 11
     platform?: string;  // "windows" | "mac" | "linux"
   };
 }) {
+  const searchQuery = searchParams.q?.trim() || undefined;
   const categoryFilter = searchParams.category?.trim() || undefined;
-  const pricingFilter = searchParams.pricing?.toLowerCase();
-  const platformFilter = searchParams.platform?.toUpperCase();
+  // Multi-select filters: comma-separated lists, e.g. ?pricing=free,pro&platform=windows,mac
+  const pricingFilters = (searchParams.pricing ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const platformFilters = (searchParams.platform ?? "")
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => s === "WINDOWS" || s === "MAC" || s === "LINUX");
 
-  // Build installer platform filter for Step 11
-  const installerWhere = platformFilter
-    ? { some: { platform: platformFilter as "WINDOWS" | "MAC" | "LINUX" } }
+  // Free-text search across name / category / tagline / description (Feature 18)
+  const searchWhere = searchQuery
+    ? {
+        OR: [
+          { name: { contains: searchQuery, mode: "insensitive" as const } },
+          { category: { contains: searchQuery, mode: "insensitive" as const } },
+          { tagline: { contains: searchQuery, mode: "insensitive" as const } },
+          { description: { contains: searchQuery, mode: "insensitive" as const } },
+        ],
+      }
     : undefined;
 
-  // Build pricing filter for Step 11
-  let priceWhere: Record<string, unknown> | undefined;
-  if (pricingFilter === "free") priceWhere = { priceFree: true };
-  else if (pricingFilter === "pro") priceWhere = { priceAmount: { not: null } };
+  // Build installer platform filter — any of the selected platforms (Feature 19)
+  const installerWhere = platformFilters.length > 0
+    ? { some: { platform: { in: platformFilters as ("WINDOWS" | "MAC" | "LINUX")[] } } }
+    : undefined;
+
+  // Build pricing filter — OR across selected pricing options (Feature 19)
+  const priceConditions: Record<string, unknown>[] = [];
+  if (pricingFilters.includes("free")) priceConditions.push({ priceFree: true });
+  if (pricingFilters.includes("pro")) priceConditions.push({ priceAmount: { not: null } });
+  const priceWhere = priceConditions.length > 0 ? { OR: priceConditions } : undefined;
 
   const [products, recentChangelogs] = await Promise.all([
     prisma.product.findMany({
       where: {
+        ...(searchWhere ?? {}),
         ...(categoryFilter ? { category: categoryFilter } : {}),
         ...(priceWhere ?? {}),
         ...(installerWhere ? { installers: installerWhere } : {}),
@@ -110,16 +133,59 @@ export default async function LandingPage({
     releasedAt: c.releasedAt,
   }));
 
-  const hasFilters = categoryFilter || pricingFilter || platformFilter;
+  const hasFilters =
+    categoryFilter || pricingFilters.length > 0 || platformFilters.length > 0;
+
+  // Build a "/" href that keeps all current filters except one (value removed)
+  function hrefWithout(key: "category" | "pricing" | "platform", value: string): string {
+    const remaining: Record<string, string[]> = {
+      pricing: pricingFilters.filter((v) => v !== value.toLowerCase()),
+      platform: platformFilters.filter((v) => v !== value.toUpperCase()),
+    };
+    const parts: string[] = [];
+    if (categoryFilter && key !== "category") parts.push(`category=${encodeURIComponent(categoryFilter)}`);
+    if (remaining.pricing.length) parts.push(`pricing=${remaining.pricing.join(",")}`);
+    if (remaining.platform.length) parts.push(`platform=${remaining.platform.join(",")}`);
+    return parts.length ? `/?${parts.join("&")}` : "/";
+  }
+
+  // ── Search-results view (Feature 18) ──────────────────────────────────
+  if (searchQuery) {
+    return (
+      <div className="space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="text-fg-sub">Hasil pencarian untuk</span>
+          <span className="font-semibold text-fg">&ldquo;{searchQuery}&rdquo;</span>
+          <span className="text-fg-muted">· {cards.length} produk</span>
+          <Chip label="Hapus pencarian" href="/" />
+        </div>
+        {cards.length === 0 ? (
+          <div className="rounded-card border border-dashed border-line bg-card p-12 text-center text-[13px] text-fg-sub">
+            Tidak ada produk yang cocok dengan &ldquo;{searchQuery}&rdquo;.
+          </div>
+        ) : (
+          <ProductSection
+            eyebrow="Search"
+            title={`${cards.length} hasil`}
+            products={cards}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 px-4 py-6 lg:px-8 lg:py-8">
       {hasFilters && (
         <div className="flex flex-wrap items-center gap-2 text-[12px]">
           <span className="text-fg-sub">Filtered by:</span>
-          {categoryFilter && <Chip label={categoryFilter} href="/" />}
-          {pricingFilter && <Chip label={pricingFilter.toUpperCase()} href="/" />}
-          {platformFilter && <Chip label={platformFilter} href="/" />}
+          {categoryFilter && <Chip label={categoryFilter} href={hrefWithout("category", categoryFilter)} />}
+          {pricingFilters.map((v) => (
+            <Chip key={`p-${v}`} label={v.toUpperCase()} href={hrefWithout("pricing", v)} />
+          ))}
+          {platformFilters.map((v) => (
+            <Chip key={`pf-${v}`} label={v} href={hrefWithout("platform", v)} />
+          ))}
         </div>
       )}
 

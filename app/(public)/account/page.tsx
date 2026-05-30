@@ -1,12 +1,18 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { Icon } from "@/components/ui/Icon";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
+import { maskLicenseKey } from "@/lib/license";
 import { ProfileEditForm } from "@/components/account/ProfileEditForm";
 import { SignOutButton } from "@/components/account/SignOutButton";
+import {
+  AccountTabs,
+  type InstallItem,
+  type LicenseItem,
+  type ReviewItem,
+} from "@/components/account/AccountTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -50,20 +56,23 @@ function Card({ title, children, id }: { title: string; children: React.ReactNod
   );
 }
 
-function Stars({ value }: { value: number }) {
+function StatCard({ icon, value, label }: {
+  icon: React.ComponentProps<typeof Icon>["name"];
+  value: string | number;
+  label: string;
+}) {
   return (
-    <span className="text-[15px]">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={i <= value ? "text-accent" : "text-fg-muted/30"}>
-          ★
-        </span>
-      ))}
-    </span>
+    <div className="flex items-center gap-3 rounded-card border border-line bg-card p-4">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-btn bg-accent/10 text-accent">
+        <Icon name={icon} size={18} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[18px] font-bold leading-tight text-fg">{value}</p>
+        <p className="truncate text-[12px] text-fg-sub">{label}</p>
+      </div>
+    </div>
   );
 }
-
-const WA_SUPPORT =
-  "https://wa.me/6282111990423?text=Halo+Admin+Kaemnur%2C+saya+butuh+bantuan.";
 
 export default async function AccountPage() {
   const supabase = createClient();
@@ -73,18 +82,23 @@ export default async function AccountPage() {
     redirect("/login?redirect=/account");
   }
 
-  const [profile, downloads, ratings] = await Promise.all([
+  const [profile, downloads, ratings, licenses] = await Promise.all([
     prisma.userProfile.findUnique({ where: { id: user.id } }),
     prisma.downloadLog.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
       take: 50,
-      include: { product: { select: { id: true, name: true, slug: true } } },
+      include: { product: { select: { id: true, name: true, slug: true, version: true } } },
     }),
     prisma.productRating.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
       include: { product: { select: { id: true, name: true, slug: true } } },
+    }),
+    prisma.license.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      include: { product: { select: { name: true } } },
     }),
   ]);
 
@@ -105,150 +119,78 @@ export default async function AccountPage() {
     `Halo Admin Kaemnur, saya ${displayName} butuh bantuan.`
   )}`;
 
+  // ── Build serializable items for the tabbed view ──────────────────────
+  const installItems: InstallItem[] = downloads.map((dl) => ({
+    id: dl.id,
+    name: dl.product.name,
+    slug: dl.product.slug,
+    platform: PLATFORM_LABELS[dl.platform] ?? dl.platform,
+    version: dl.product.version,
+    date: tanggalID(dl.createdAt),
+  }));
+
+  const licenseItems: LicenseItem[] = licenses.map((l) => ({
+    id: l.id,
+    maskedKey: maskLicenseKey(l.key),
+    productName: l.product.name,
+    status: l.isActivated ? "aktif" : "belum",
+    date: tanggalSingkat(l.createdAt),
+  }));
+
+  const reviewItems: ReviewItem[] = ratings.map((r) => ({
+    id: r.id,
+    name: r.product.name,
+    slug: r.product.slug,
+    rating: r.rating,
+    reviewText: r.reviewText,
+    date: tanggalSingkat(r.createdAt),
+  }));
+
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 lg:px-8 lg:py-8">
       {/* 1 — Profile header */}
-      <div className="rounded-card border border-line bg-card p-6">
-        <div className="flex items-start gap-4">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt=""
-              className="h-16 w-16 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <span
-              className="grid h-16 w-16 shrink-0 place-items-center rounded-full text-[24px] font-bold"
-              style={{ backgroundColor: avatarBg, color: avatarFg }}
-            >
-              {getInitial(displayName)}
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
+      <div className="overflow-hidden rounded-card border border-line bg-card">
+        <div className="h-20 bg-gradient-to-r from-accent/20 via-accent/5 to-transparent" />
+        <div className="flex flex-col gap-4 px-6 pb-6 sm:flex-row sm:items-end">
+          <div className="-mt-10 shrink-0">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-20 w-20 rounded-full border-4 border-card object-cover"
+              />
+            ) : (
+              <span
+                className="grid h-20 w-20 place-items-center rounded-full border-4 border-card text-[30px] font-bold"
+                style={{ backgroundColor: avatarBg, color: avatarFg }}
+              >
+                {getInitial(displayName)}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1 sm:pb-1">
             <h1 className="text-xl font-bold text-fg">{displayName}</h1>
             <p className="text-[13px] text-fg-sub">{email}</p>
-            <p className="mt-0.5 text-[12px] text-fg-muted">
+            <p className="mt-0.5 flex items-center gap-1 text-[12px] text-fg-muted">
+              <Icon name="users" size={12} />
               Bergabung {tanggalSingkat(memberSince)}
             </p>
           </div>
         </div>
       </div>
 
-      {/* 2 — Licenses */}
-      <Card title="Lisensi Saya">
-        <div className="rounded-btn border border-dashed border-line bg-bg px-4 py-8 text-center">
-          <Icon name="key" size={24} className="mx-auto text-fg-muted" />
-          <p className="mt-3 text-[13px] font-medium text-fg">Belum ada lisensi</p>
-          <p className="mt-1.5 max-w-xs mx-auto text-[12px] leading-relaxed text-fg-sub">
-            Lisensi PRO akan muncul di sini setelah tim Kaemnur menghubungkan
-            kunci ke akun Anda. Hubungi kami via WhatsApp untuk konfirmasi.
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <a
-              href={WA_SUPPORT}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover"
-            >
-              <Icon name="send" size={13} />
-              Hubungi Admin
-            </a>
-            <Link
-              href="/download"
-              className="inline-flex h-9 items-center gap-1.5 rounded-btn border border-line px-3 text-[12px] font-medium text-fg-sub hover:bg-card-hover hover:text-fg"
-            >
-              <Icon name="download" size={13} />
-              Upgrade ke PRO
-            </Link>
-          </div>
-        </div>
-      </Card>
+      {/* 2 — Stats row */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatCard icon="download" value={installItems.length} label="Total instalasi" />
+        <StatCard icon="key" value={licenseItems.length} label="Lisensi tertaut" />
+        <StatCard icon="star" value={reviewItems.length} label="Ulasan ditulis" />
+      </div>
 
-      {/* 3 — Download history */}
-      <Card title="Riwayat Unduhan" id="downloads">
-        {downloads.length === 0 ? (
-          <div className="rounded-btn border border-dashed border-line bg-bg px-4 py-8 text-center">
-            <Icon name="download" size={24} className="mx-auto text-fg-muted" />
-            <p className="mt-3 text-[13px] font-medium text-fg">Belum ada riwayat unduhan</p>
-            <Link
-              href="/download"
-              className="mt-3 inline-block text-[12px] font-medium text-accent hover:underline"
-            >
-              Cari aplikasi untuk diunduh →
-            </Link>
-          </div>
-        ) : (
-          <div className="divide-y divide-line">
-            {downloads.map((dl) => (
-              <div key={dl.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <Link
-                    href={`/products/${dl.product.slug}`}
-                    className="text-[14px] font-semibold text-fg hover:text-accent"
-                  >
-                    {dl.product.name}
-                  </Link>
-                  <p className="text-[12px] text-fg-sub">{tanggalID(dl.createdAt)}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="rounded bg-line px-2 py-0.5 text-[11px] font-semibold text-fg-sub">
-                    {PLATFORM_LABELS[dl.platform] ?? dl.platform}
-                  </span>
-                  <Link
-                    href={`/products/${dl.product.slug}`}
-                    className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-medium text-accent hover:bg-accent/10"
-                  >
-                    <Icon name="download" size={11} />
-                    Unduh Lagi
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* 4 — Ratings */}
-      <Card title="Ulasan Saya">
-        {ratings.length === 0 ? (
-          <div className="rounded-btn border border-dashed border-line bg-bg px-4 py-8 text-center">
-            <Icon name="star" size={24} className="mx-auto text-fg-muted" />
-            <p className="mt-3 text-[13px] font-medium text-fg">Belum memberikan ulasan</p>
-            <Link
-              href="/"
-              className="mt-3 inline-block text-[12px] font-medium text-accent hover:underline"
-            >
-              Jelajahi produk untuk dinilai →
-            </Link>
-          </div>
-        ) : (
-          <div className="divide-y divide-line">
-            {ratings.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <Link
-                    href={`/products/${r.product.slug}`}
-                    className="text-[14px] font-semibold text-fg hover:text-accent"
-                  >
-                    {r.product.name}
-                  </Link>
-                  <p className="text-[12px] text-fg-sub">{tanggalSingkat(r.createdAt)}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <Stars value={r.rating} />
-                  <Link
-                    href={`/products/${r.product.slug}`}
-                    className="text-[11px] font-medium text-accent hover:underline"
-                  >
-                    Ubah Rating
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+      {/* 3 — Tabbed content */}
+      <div id="downloads">
+        <AccountTabs installs={installItems} licenses={licenseItems} reviews={reviewItems} />
+      </div>
 
       {/* 5 — Account settings */}
       <Card title="Pengaturan Akun">

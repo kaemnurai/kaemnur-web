@@ -137,6 +137,13 @@ export function Navbar() {
     };
   }, []);
 
+  function submitSearch() {
+    const q = query.trim();
+    if (!q) return;
+    setOpen(false);
+    router.push(`/?q=${encodeURIComponent(q)}`);
+  }
+
   const displayName = userMeta.displayName;
   const avatarBg = user ? getAvatarColor(user.id) : "#F4B400";
   const avatarFg = getAvatarTextColor(avatarBg);
@@ -164,7 +171,7 @@ export function Navbar() {
         <div className="relative ml-2 hidden flex-1 max-w-md md:block" ref={wrapRef}>
           <label className="flex h-9 items-center gap-2 rounded-btn border border-line bg-bg px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
             <Icon name="search" size={14} className="shrink-0 text-fg-muted" />
-            <input type="search" placeholder="Search products" value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1 bg-transparent outline-none placeholder:text-fg-muted" />
+            <input type="search" placeholder="Search products" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitSearch(); } }} className="flex-1 bg-transparent outline-none placeholder:text-fg-muted" />
             {loading ? <span className="kbd opacity-60">…</span> : <span className="kbd">⌘K</span>}
           </label>
           {open && (

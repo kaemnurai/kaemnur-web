@@ -40,9 +40,11 @@ export function PlatformDownload({
       <button
         type="button"
         disabled
-        className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-btn bg-line text-[13px] font-semibold text-fg-muted"
+        title="Installer belum tersedia"
+        className="mt-4 flex h-10 w-full cursor-not-allowed items-center justify-center gap-2 rounded-btn bg-line text-[13px] font-semibold text-fg-muted"
       >
-        Coming soon
+        <Icon name="download" size={15} />
+        Installer belum tersedia
       </button>
     );
   }

@@ -96,6 +96,7 @@ model License {
   productId         String
   buyerName         String
   buyerWhatsapp     String
+  userId            String?   // linked Kaemnur account (set by admin) — shows in /account
   isActivated       Boolean   @default(false)
   activatedAt       DateTime?
   deviceId          String?   // hardware fingerprint bound at activation
@@ -103,10 +104,12 @@ model License {
   resetAt           DateTime? // set when admin resets; distinguishes "Direset" from "Belum Diaktifkan"
   createdAt         DateTime  @default(now())
   product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user              UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([productId])
   @@index([key])
   @@index([deviceId])
+  @@index([userId])
 }
 
 model DownloadLog {
@@ -200,6 +203,7 @@ model UserProfile {
   comments     Comment[]
   ratings      ProductRating[]
   downloadLogs DownloadLog[]
+  licenses     License[]
 }
 
 model ProductRating {

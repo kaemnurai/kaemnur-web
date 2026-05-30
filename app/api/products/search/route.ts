@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         { tagline: { contains: q, mode: "insensitive" } },
       ],
     },
-    take: 8,
+    take: 5,
     orderBy: [{ isFeatured: "desc" }, { downloadCount: "desc" }],
     select: {
       name: true,
