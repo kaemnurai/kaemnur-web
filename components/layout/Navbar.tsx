@@ -28,7 +28,7 @@ const tabs = [
   { href: "/", label: "Store" },
   { href: "/download", label: "Library" },
   { href: "/community", label: "Community" },
-  { href: "/faq", label: "News" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 export function Navbar() {
@@ -226,7 +226,8 @@ export function Navbar() {
                     <p className="truncate text-[11px] text-fg-muted">{user.email}</p>
                   </div>
                   <ul className="py-1 text-[13px]">
-                    <li><Link href="/downloads" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-fg-sub hover:bg-card-hover hover:text-fg"><Icon name="download" size={13} />My Downloads</Link></li>
+                    <li><Link href="/account" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-fg-sub hover:bg-card-hover hover:text-fg"><Icon name="users" size={13} />Akun Saya</Link></li>
+                    <li><Link href="/account#downloads" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-fg-sub hover:bg-card-hover hover:text-fg"><Icon name="download" size={13} />Riwayat Unduhan</Link></li>
                     <li className="border-t border-line mt-1 pt-1">
                       <button type="button" onClick={signOut} className="flex w-full items-center gap-2 px-3 py-2 text-danger hover:bg-danger/10">
                         <Icon name="log-out" size={13} />Sign out
