@@ -8,6 +8,7 @@ import { ChangelogAccordion } from "@/components/product/ChangelogAccordion";
 import { ProductCard, type ProductCardData } from "@/components/product/ProductCard";
 import { UpgradeButton } from "@/components/sections/UpgradeButton";
 import { PlatformDownload } from "@/components/product/PlatformDownload";
+import { RatingWidget } from "@/components/product/RatingWidget";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ export default async function ProductPage({
         take: 5,
         include: { _count: { select: { comments: true } } },
       },
+      ratings: true,
     },
   });
   if (!product) notFound();
@@ -66,6 +68,7 @@ export default async function ProductPage({
     include: {
       screenshots: { orderBy: { order: "asc" }, take: 1 },
       installers: { select: { platform: true } },
+      ratings: { select: { rating: true } },
     },
   });
 
@@ -78,23 +81,35 @@ export default async function ProductPage({
   const platforms = Array.from(new Set(product.installers.map((i) => i.platform)));
   const hasPro = product.priceAmount != null;
   const totalSize = product.installers.reduce((sum, i) => sum + i.fileSize, 0);
+  const ratingAvg = product.ratings.length > 0
+    ? product.ratings.reduce((s, r) => s + r.rating, 0) / product.ratings.length
+    : null;
+  const ratingDisplay = product.ratingOverride ?? ratingAvg;
   const minReq = product.requirements.find((r) => r.type === "minimum");
   const recReq = product.requirements.find((r) => r.type === "recommended");
 
-  const otherCards: ProductCardData[] = others.map((o) => ({
-    name: o.name,
-    slug: o.slug,
-    category: o.category,
-    tagline: o.tagline,
-    downloadCount: o.downloadCount,
-    createdAt: o.createdAt,
-    isFeatured: o.isFeatured,
-    priceFree: o.priceFree,
-    priceAmount: o.priceAmount,
-    priceLabel: o.priceLabel,
-    platforms: Array.from(new Set(o.installers.map((i) => i.platform))),
-    screenshots: o.screenshots,
-  }));
+  const otherCards: ProductCardData[] = others.map((o) => {
+    const avg = o.ratings.length > 0
+      ? o.ratings.reduce((s, r) => s + r.rating, 0) / o.ratings.length
+      : null;
+    return {
+      name: o.name,
+      slug: o.slug,
+      category: o.category,
+      tagline: o.tagline,
+      downloadCount: o.downloadCount,
+      createdAt: o.createdAt,
+      isFeatured: o.isFeatured,
+      priceFree: o.priceFree,
+      priceAmount: o.priceAmount,
+      priceLabel: o.priceLabel,
+      ratingOverride: o.ratingOverride,
+      ratingAvg: avg,
+      ratingCount: o.ratings.length,
+      platforms: Array.from(new Set(o.installers.map((i) => i.platform))),
+      screenshots: o.screenshots,
+    };
+  });
 
   // Pass only what the client component needs (no full Prisma objects)
   const installerOptions = product.installers.map((i) => ({
@@ -119,8 +134,11 @@ export default async function ProductPage({
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-fg-sub">
           <span className="inline-flex items-center gap-1">
             <Icon name="star" size={12} className="text-accent" />
-            <span className="font-medium text-fg">4.9</span>
-            <span>· {formatCount(Math.max(product.downloadCount, 50))} reviews</span>
+            {ratingDisplay !== null ? (
+              <><span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span><span>· {product.ratings.length} rating{product.ratings.length !== 1 ? "s" : ""}</span></>
+            ) : (
+              <span className="text-fg-muted">No ratings yet</span>
+            )}
           </span>
           <span className="rounded border border-line bg-card px-2 py-0.5">{product.category}</span>
           <span className="rounded border border-line bg-card px-2 py-0.5">Offline-first</span>
@@ -295,6 +313,16 @@ export default async function ProductPage({
                 <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 Verified · Offline-first
               </p>
+
+              {/* Real ratings widget */}
+              <div className="mt-2">
+                <RatingWidget
+                  slug={product.slug}
+                  initialAverage={ratingAvg}
+                  initialCount={product.ratings.length}
+                  initialRatingOverride={product.ratingOverride}
+                />
+              </div>
 
               {/* Step 6: platform selector + download button */}
               <PlatformDownload

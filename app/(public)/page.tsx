@@ -38,6 +38,7 @@ export default async function LandingPage({
       include: {
         screenshots: { orderBy: { order: "asc" } },
         installers: { orderBy: { createdAt: "desc" } },
+        ratings: { select: { rating: true } },
       },
     }),
     prisma.changelog.findMany({
@@ -48,6 +49,10 @@ export default async function LandingPage({
   ]);
 
   const featuredRaw = products.find((p) => p.isFeatured) ?? products[0] ?? null;
+
+  const featuredRatingAvg = featuredRaw && featuredRaw.ratings.length > 0
+    ? featuredRaw.ratings.reduce((s, r) => s + r.rating, 0) / featuredRaw.ratings.length
+    : null;
 
   const heroProduct: HeroProduct | null = featuredRaw
     ? {
@@ -61,26 +66,36 @@ export default async function LandingPage({
         downloadCount: featuredRaw.downloadCount,
         priceFree: featuredRaw.priceFree,
         priceLabel: featuredRaw.priceLabel,
+        ratingDisplay: featuredRaw.ratingOverride ?? featuredRatingAvg,
+        ratingCount: featuredRaw.ratings.length,
         screenshots: featuredRaw.screenshots,
         installerPlatforms: Array.from(new Set(featuredRaw.installers.map((i) => i.platform))),
         primaryInstallerId: featuredRaw.installers[0]?.id ?? null,
       }
     : null;
 
-  const cards: ProductCardData[] = products.map((p) => ({
-    name: p.name,
-    slug: p.slug,
-    category: p.category,
-    tagline: p.tagline,
-    downloadCount: p.downloadCount,
-    createdAt: p.createdAt,
-    isFeatured: p.isFeatured,
-    priceFree: p.priceFree,
-    priceAmount: p.priceAmount,
-    priceLabel: p.priceLabel,
-    platforms: Array.from(new Set(p.installers.map((i) => i.platform))),
-    screenshots: p.screenshots,
-  }));
+  const cards: ProductCardData[] = products.map((p) => {
+    const ratingAvg = p.ratings.length > 0
+      ? p.ratings.reduce((s, r) => s + r.rating, 0) / p.ratings.length
+      : null;
+    return {
+      name: p.name,
+      slug: p.slug,
+      category: p.category,
+      tagline: p.tagline,
+      downloadCount: p.downloadCount,
+      createdAt: p.createdAt,
+      isFeatured: p.isFeatured,
+      priceFree: p.priceFree,
+      priceAmount: p.priceAmount,
+      priceLabel: p.priceLabel,
+      ratingOverride: p.ratingOverride,
+      ratingAvg,
+      ratingCount: p.ratings.length,
+      platforms: Array.from(new Set(p.installers.map((i) => i.platform))),
+      screenshots: p.screenshots,
+    };
+  });
 
   const editorialPicks = cards.filter((c) => c.isFeatured);
   const editorialSlugs = new Set(editorialPicks.map((c) => c.slug));

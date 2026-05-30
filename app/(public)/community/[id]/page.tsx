@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Icon } from "@/components/ui/Icon";
 import { CommentForm } from "@/components/community/CommentForm";
 import { AdminReplyForm } from "@/components/community/AdminReplyForm";
+import { AdminDeleteComment, AdminDeleteTopic } from "@/components/community/AdminDeleteControls";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,7 @@ export default async function TopicPage({ params }: { params: { id: string } }) 
                   <span className="font-semibold text-fg">{topic.authorName}</span>
                   <span className="rounded bg-line px-2 py-0.5 text-[10px] font-semibold text-fg-sub">Original Post</span>
                   <span className="text-[11px] text-fg-muted">{relativeTime(topic.createdAt)}</span>
+                  <AdminDeleteTopic topicId={topic.id} />
                 </div>
                 {topic.mentionedProducts.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
@@ -105,6 +107,7 @@ export default async function TopicPage({ params }: { params: { id: string } }) 
                         <span className="text-[13px] font-semibold text-fg">{comment.authorName}</span>
                         <span className="rounded bg-accent/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">Kaemnur Team</span>
                         <span className="text-[11px] text-fg-muted">{relativeTime(comment.createdAt)}</span>
+                        <AdminDeleteComment commentId={comment.id} topicId={topic.id} />
                       </div>
                       <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-fg-sub">{comment.body}</p>
                     </div>
@@ -124,6 +127,7 @@ export default async function TopicPage({ params }: { params: { id: string } }) 
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] font-semibold text-fg">{comment.authorName}</span>
                       <span className="text-[11px] text-fg-muted">{relativeTime(comment.createdAt)}</span>
+                      <AdminDeleteComment commentId={comment.id} topicId={topic.id} />
                     </div>
                     <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed text-fg-sub">{comment.body}</p>
                   </div>

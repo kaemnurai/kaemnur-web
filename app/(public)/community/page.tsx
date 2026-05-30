@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { NewTopicModal } from "@/components/community/NewTopicModal";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type Topic = {
@@ -32,6 +33,8 @@ function relativeTime(date: string): string {
 
 export default function CommunityPage() {
   const params = useSearchParams();
+  const router = useRouter();
+  const supabase = createClient();
   const categoryParam = params.get("category") || "All";
   const [activeCategory, setActiveCategory] = useState(categoryParam);
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -41,6 +44,21 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [subforumCounts, setSubforumCounts] = useState<Record<string, number>>({});
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Check auth state
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleNewDiscussion() {
+    if (!userId) {
+      router.push("/login?redirect=/community");
+      return;
+    }
+    setModalOpen(true);
+  }
 
   async function fetchTopics(cat: string, pg: number) {
     setLoading(true);
@@ -67,10 +85,10 @@ export default function CommunityPage() {
     setSubforumCounts(counts);
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchTopics(activeCategory, 1);
     fetchCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);  // intentional: only fetch on mount, category changes handled by selectCategory
 
   function selectCategory(cat: string) {
@@ -88,7 +106,7 @@ export default function CommunityPage() {
         </div>
         <button
           type="button"
-          onClick={() => setModalOpen(true)}
+          onClick={handleNewDiscussion}
           className="inline-flex h-9 items-center gap-2 rounded-btn bg-accent px-4 text-[13px] font-semibold text-bg hover:bg-accent-hover"
         >
           <Icon name="plus" size={14} />

@@ -13,6 +13,8 @@ export type HeroProduct = {
   downloadCount: number;
   priceFree: boolean;
   priceLabel: string | null;
+  ratingDisplay: number | null;
+  ratingCount: number;
   screenshots: { id: string; url: string }[];
   installerPlatforms: string[];
   primaryInstallerId: string | null;
@@ -94,10 +96,15 @@ export function Hero({ product }: { product: HeroProduct | null }) {
           {/* Stat row */}
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-[12px] text-fg-sub">
             <span className="inline-flex items-center gap-1.5">
-              <Icon name="star" size={13} className="text-accent" />
-              <span className="font-medium text-fg">4.9</span>
-              <span>·</span>
-              <span>{formatCount(Math.max(product.downloadCount, 10))} reviews</span>
+              {product.ratingDisplay !== null ? (
+                <>
+                  <Icon name="star" size={13} className="text-accent" />
+                  <span className="font-medium text-fg">{product.ratingDisplay.toFixed(1)}</span>
+                  <span>· {product.ratingCount} rating{product.ratingCount !== 1 ? "s" : ""}</span>
+                </>
+              ) : (
+                <span className="text-fg-muted">No ratings yet</span>
+              )}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Icon name="download" size={13} />

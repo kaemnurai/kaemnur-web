@@ -13,6 +13,9 @@ export type ProductCardData = {
   priceFree: boolean;
   priceAmount: number | null;
   priceLabel: string | null;
+  ratingOverride: number | null;
+  ratingAvg: number | null;
+  ratingCount: number;
   platforms: string[];
   screenshots: { url: string }[];
 };
@@ -27,9 +30,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const cover = product.screenshots[0]?.url;
   const accent = productAccent(product.slug);
 
-  // Rating + count are decorative placeholders until a reviews model exists.
-  const rating = (4 + (product.slug.charCodeAt(0) % 9) / 10).toFixed(1);
-  const reviewCount = formatCount(Math.max(product.downloadCount, 50));
+  const displayRating = product.ratingOverride ?? product.ratingAvg;
 
   return (
     <Link
@@ -90,9 +91,15 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         {/* Bottom row */}
         <div className="mt-auto flex items-center justify-between pt-1 text-[12px]">
           <span className="inline-flex items-center gap-1 text-fg-sub">
-            <Icon name="star" size={11} className="text-fg-sub" />
-            <span className="font-medium text-fg">{rating}</span>
-            <span>· {reviewCount}</span>
+            {displayRating !== null ? (
+              <>
+                <Icon name="star" size={11} className="text-accent" />
+                <span className="font-medium text-fg">{displayRating.toFixed(1)}</span>
+                <span>· {product.ratingCount}</span>
+              </>
+            ) : (
+              <span className="text-fg-muted text-[11px]">{formatCount(product.downloadCount)} downloads</span>
+            )}
           </span>
           <span className="font-semibold">
             {product.priceFree && <span className="text-success">Free</span>}

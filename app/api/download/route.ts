@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Platform } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Installer not found" }, { status: 404 });
   }
 
+  // Capture authenticated user if present (best-effort — never blocks download)
+  let userId: string | null = null;
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  } catch { /* not critical */ }
+
   // Log the download + increment counter in parallel
   await Promise.all([
     prisma.downloadLog.create({
-      data: { productId: installer.productId, platform: installer.platform },
+      data: { productId: installer.productId, platform: installer.platform, userId },
     }),
     prisma.product.update({
       where: { id: installer.productId },

@@ -27,10 +27,11 @@ model Product {
   category      String
   isFeatured    Boolean  @default(false)
   downloadCount Int      @default(0)
-  priceFree     Boolean  @default(true)
-  priceAmount   Int?     // in Rupiah, null = free-only
-  priceLabel    String?  // e.g. "Rp 99.000" — admin-provided display string
-  createdAt     DateTime @default(now())
+  priceFree      Boolean  @default(true)
+  priceAmount    Int?     // in Rupiah, null = free-only
+  priceLabel     String?  // e.g. "Rp 99.000" — admin-provided display string
+  ratingOverride Float?   // admin-set override; if set, displayed instead of avg
+  createdAt      DateTime @default(now())
 
   screenshots       ProductScreenshot[]
   features          ProductFeature[]
@@ -40,6 +41,7 @@ model Product {
   downloadLogs      DownloadLog[]
   requirements      ProductRequirement[]
   mentionedInTopics Topic[]  @relation("TopicMentions")
+  ratings           ProductRating[]
 
   @@index([category])
 }
@@ -108,14 +110,17 @@ model License {
 }
 
 model DownloadLog {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   productId String
   platform  Platform
-  createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?     // Supabase auth user id (null for anonymous downloads)
+  createdAt DateTime    @default(now())
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      UserProfile? @relation(fields: [userId], references: [id])
 
   @@index([productId])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model ProductRequirement {
@@ -134,32 +139,38 @@ model ProductRequirement {
 // ─── Community ────────────────────────────────────────────────────────────
 
 model Topic {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   title      String
   body       String
   authorName String
-  category   String   @default("General")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  category   String      @default("General")
+  userId     String?     // Supabase auth user id (null for legacy/anonymous)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   comments          Comment[]
   mentionedProducts Product[]      @relation("TopicMentions")
   notifications     Notification[]
+  user              UserProfile?   @relation(fields: [userId], references: [id])
 
   @@index([category])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model Comment {
-  id         String   @id @default(cuid())
+  id         String      @id @default(cuid())
   topicId    String
   body       String
   authorName String
-  isAdmin    Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  topic      Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  isAdmin    Boolean     @default(false)
+  userId     String?     // Supabase auth user id (null for legacy/anonymous)
+  createdAt  DateTime    @default(now())
+  topic      Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  user       UserProfile? @relation(fields: [userId], references: [id])
 
   @@index([topicId])
+  @@index([userId])
 }
 
 model Notification {
@@ -174,4 +185,33 @@ model Notification {
   @@index([topicId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// ─── User Auth ────────────────────────────────────────────────────────────
+
+model UserProfile {
+  id          String   @id // Supabase auth UUID — must match auth.users.id
+  displayName String?
+  avatarUrl   String?
+  email       String?
+  createdAt   DateTime @default(now())
+
+  topics       Topic[]
+  comments     Comment[]
+  ratings      ProductRating[]
+  downloadLogs DownloadLog[]
+}
+
+model ProductRating {
+  id        String      @id @default(cuid())
+  productId String
+  userId    String      // Supabase auth UUID
+  rating    Int         // 1-5
+  createdAt DateTime    @default(now())
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // one rating per user per product
+  @@index([productId])
+  @@index([userId])
 }
