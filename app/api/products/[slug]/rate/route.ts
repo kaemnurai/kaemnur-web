@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,10 +46,21 @@ export async function POST(
     update: {},
   });
 
+  const createData: Prisma.ProductRatingUncheckedCreateInput = {
+    productId: product.id,
+    userId: user.id,
+    rating,
+    reviewText,
+  };
+  const updateData: Prisma.ProductRatingUncheckedUpdateInput = {
+    rating,
+    reviewText,
+  };
+
   const upserted = await prisma.productRating.upsert({
     where: { productId_userId: { productId: product.id, userId: user.id } },
-    create: { productId: product.id, userId: user.id, rating, ...(reviewText !== undefined && { reviewText }) },
-    update: { rating, ...(reviewText !== undefined && { reviewText }) },
+    create: createData,
+    update: updateData,
     include: { user: { select: { displayName: true, avatarUrl: true } } },
   });
 
@@ -60,7 +72,7 @@ export async function POST(
 
   return NextResponse.json({
     userRating: upserted.rating,
-    userReviewText: upserted.reviewText,
+    userReviewText: upserted.reviewText ?? null,
     average: agg._avg.rating ?? null,
     count: agg._count.rating,
   });
