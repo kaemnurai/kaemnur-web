@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -80,6 +81,7 @@ export default async function ProductPage({
     searchParams.tab === "changelog" || searchParams.tab === "requirements"
       ? searchParams.tab
       : "overview";
+  const isOverview = activeTab === "overview";
 
   const accent = productAccent(product.slug);
   const platforms = Array.from(new Set(product.installers.map((i) => i.platform)));
@@ -123,96 +125,104 @@ export default async function ProductPage({
     <div className="px-4 py-6 lg:px-8 lg:py-8">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1.5 text-[13px] text-fg-sub">
-        <Link href="/" className="hover:text-fg">Store</Link>
+        <Link href="/store" className="hover:text-fg">Store</Link>
         <Icon name="chevron-right" size={12} className="text-fg-muted" />
         <span className="text-fg-sub">{product.category}</span>
         <Icon name="chevron-right" size={12} className="text-fg-muted" />
         <span className="text-fg">{product.name}</span>
       </nav>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        {/* ───────────────────────── Left column ───────────────────────── */}
-        <div className="min-w-0 space-y-6">
-          {/* Header: logo + name + tagline + rating */}
-          <header className="flex items-start gap-4">
-            <div className="grid h-20 w-20 shrink-0 place-items-center rounded-card border border-line bg-card">
-              <span className={cn("text-4xl font-extrabold", accent.fg)}>
-                {product.name[0]}
-              </span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
-                <span className="rounded border border-line bg-card px-2 py-0.5 text-[11px] font-medium text-fg-sub">
-                  {product.category}
-                </span>
-                <span className="rounded border border-line bg-card px-2 py-0.5 font-mono text-[11px] text-fg-sub">
-                  v{product.version}
-                </span>
-              </div>
-              {product.tagline && (
-                <p className="mt-1.5 text-[14px] text-fg-sub">{product.tagline}</p>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-fg-sub">
-                {ratingDisplay !== null && (
-                  <a href="#reviews" className="inline-flex items-center gap-1 hover:text-fg">
-                    <span className="text-accent">★</span>
-                    <span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span>
-                    <span>· {ratingCount} ulasan</span>
-                  </a>
-                )}
-                <span className="text-fg-muted">·</span>
-                <span>{product.category}</span>
-                <span className="text-fg-muted">·</span>
-                <span className="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">Free</span>
-                {hasPro && (
-                  <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent">PRO</span>
-                )}
-              </div>
-            </div>
-          </header>
-
-          {/* Tabs */}
-          <div className="flex gap-6 border-b border-line">
-            {TABS.map((t) => {
-              const active = activeTab === t.key;
-              const href = t.key === "overview" ? "" : `?tab=${t.key}`;
-              return (
-                <Link
-                  key={t.key}
-                  href={`/products/${product.slug}${href}`}
-                  className={cn(
-                    "relative -mb-px border-b-2 px-1 pb-3 text-[14px] font-medium transition-colors",
-                    active ? "border-accent text-fg" : "border-transparent text-fg-sub hover:text-fg"
-                  )}
-                >
-                  {t.label}
-                </Link>
-              );
-            })}
+      {/* Header: logo + name + meta (full width) */}
+      <header className="flex items-start gap-4">
+        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-card border border-line bg-card">
+          {product.logoUrl ? (
+            <Image
+              src={product.logoUrl}
+              alt={product.name}
+              width={80}
+              height={80}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <span className={cn("text-4xl font-extrabold", accent.fg)}>{product.name[0]}</span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
+            <span className="rounded border border-line bg-card px-2 py-0.5 text-[11px] font-medium text-fg-sub">
+              {product.category}
+            </span>
+            <span className="rounded border border-line bg-card px-2 py-0.5 font-mono text-[11px] text-fg-sub">
+              v{product.version}
+            </span>
           </div>
+          {product.tagline && (
+            <p className="mt-1.5 text-[14px] text-fg-sub">{product.tagline}</p>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-fg-sub">
+            {ratingDisplay !== null && (
+              <a href="#reviews" className="inline-flex items-center gap-1 hover:text-fg">
+                <span className="text-accent">★</span>
+                <span className="font-medium text-fg">{ratingDisplay.toFixed(1)}</span>
+                <span>· {ratingCount} ulasan</span>
+              </a>
+            )}
+            <span className="text-fg-muted">·</span>
+            <span>{product.category}</span>
+            <span className="text-fg-muted">·</span>
+            <span className="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success">Free</span>
+            {hasPro && (
+              <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-medium text-accent">PRO</span>
+            )}
+          </div>
+        </div>
+      </header>
 
-          {activeTab === "overview" && (
-            <div className="space-y-8">
-              {/* Screenshots */}
+      {/* Tabs */}
+      <div className="mt-6 flex gap-6 border-b border-line">
+        {TABS.map((t) => {
+          const active = activeTab === t.key;
+          const href = t.key === "overview" ? "" : `?tab=${t.key}`;
+          return (
+            <Link
+              key={t.key}
+              href={`/products/${product.slug}${href}`}
+              className={cn(
+                "relative -mb-px border-b-2 px-1 pb-3 text-[14px] font-medium transition-colors",
+                active ? "border-accent text-fg" : "border-transparent text-fg-sub hover:text-fg"
+              )}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Main two-column grid — left content + right install/features */}
+      <div
+        className={cn(
+          "mt-6 grid gap-6 lg:grid-cols-[1fr_340px]",
+          isOverview ? "lg:items-stretch" : "lg:items-start"
+        )}
+      >
+        {/* ── Left column ── */}
+        <div className="flex min-w-0 flex-col gap-6">
+          {isOverview && (
+            <>
               <ScreenshotGallery
                 screenshots={product.screenshots}
                 productName={product.name}
                 accentBg={accent.bg}
                 accentFg={accent.fg}
               />
-
-              {/* About */}
-              <section>
+              <section className="flex-1">
                 <h2 className="mb-3 text-lg font-bold text-fg">About this product</h2>
                 <p className="whitespace-pre-line text-[14px] leading-relaxed text-fg-sub">
                   {product.description}
                 </p>
               </section>
-
-              {/* Rating form + reviews carousel */}
-              <ReviewSection slug={product.slug} reviewCount={product.ratings.length} />
-            </div>
+            </>
           )}
 
           {activeTab === "changelog" && (
@@ -245,151 +255,168 @@ export default async function ProductPage({
           )}
         </div>
 
-        {/* ───────────────────────── Right sidebar ───────────────────────── */}
-        <aside className="self-start">
-          <div className="sticky top-16 space-y-3">
-            <div className="rounded-card border border-line bg-card p-4">
-              {/* Pricing */}
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold text-success">Free</span>
-                {product.priceLabel && (
-                  <span className="text-[12px] text-fg-sub">· PRO <span className="font-semibold text-accent">{product.priceLabel}</span></span>
-                )}
-              </div>
-              <p className="mt-1 flex items-center gap-1.5 text-[12px] text-success">
-                <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                Verified · Offline-first
-              </p>
-
-              {/* Display-only rating — click scrolls to #reviews */}
-              {ratingDisplay !== null && (
-                <a href="#reviews" className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-fg-sub hover:text-fg">
-                  <span className="text-accent">{"★".repeat(Math.round(ratingDisplay))}<span className="text-fg-muted/30">{"★".repeat(5 - Math.round(ratingDisplay))}</span></span>
-                  <span className="font-semibold text-fg">{ratingDisplay.toFixed(1)}</span>
-                  <span>· {ratingCount} ulasan</span>
-                </a>
-              )}
-
-              {/* Download */}
-              <PlatformDownload productId={product.id} installers={installerOptions} />
-
-              {hasPro && (
-                <UpgradeButton
-                  productName={product.name}
-                  className="mt-2 !h-10 w-full !rounded-btn !border !border-line !bg-transparent !text-[13px] !font-medium !text-fg-sub hover:!border-fg-sub hover:!text-fg"
-                >
-                  <Icon name="sparkles" size={14} />
-                  Upgrade to PRO
-                </UpgradeButton>
-              )}
-
-              <div className="my-4 border-t border-line" />
-
-              <InfoRow icon="monitor" label="Platform">
-                {platforms.length > 0 ? platforms.map((p) => PLATFORM_LABELS[p]).join(" · ") : "—"}
-              </InfoRow>
-              <InfoRow icon="package" label="Size">
-                {totalSize > 0 ? `${formatBytes(totalSize)} download` : "—"}
-              </InfoRow>
-              <InfoRow icon="shield" label="License">Offline-first · No telemetry</InfoRow>
-              <InfoRow icon="wifi-off" label="Works offline">Optional E2E sync</InfoRow>
-
-              <div className="my-4 border-t border-line" />
-
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-                About this product
-              </p>
-              <dl className="grid grid-cols-2 gap-y-1.5 text-[12px]">
-                <dt className="text-fg-sub">Developer</dt>
-                <dd className="flex items-center gap-1.5 text-fg">
-                  <span className={cn("inline-block h-2 w-2 rounded-sm", accent.solid)} />
-                  Kaemnur
-                </dd>
-                <dt className="text-fg-sub">Release date</dt>
-                <dd className="text-fg">
-                  {new Date(product.createdAt).toLocaleDateString("en-US", {
-                    month: "short", day: "numeric", year: "numeric",
-                  })}
-                </dd>
-                <dt className="text-fg-sub">Version</dt>
-                <dd className="font-mono text-fg">v{product.version}</dd>
-                <dt className="text-fg-sub">Installs</dt>
-                <dd className="text-fg">{formatCount(product.downloadCount)}+</dd>
-              </dl>
-
-              <div className="my-4 border-t border-line" />
-
-              {/* Fitur Utama — Free vs PRO comparison */}
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
-                Fitur Utama
-              </p>
-              {product.features.length === 0 ? (
-                <p className="text-[12px] text-fg-sub">Belum ada fitur yang dicantumkan.</p>
-              ) : (
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
-                      <th className="pb-2 font-medium">Feature</th>
-                      <th className="w-10 pb-2 text-center font-medium">Free</th>
-                      <th className="w-10 pb-2 text-center font-medium">PRO</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {product.features.map((f) => (
-                      <tr key={f.id} className="border-b border-line last:border-b-0">
-                        <td className="py-2 pr-2 text-[12px] text-fg">{f.text}</td>
-                        <td className="py-2 text-center text-[13px]">
-                          {f.isPro ? (
-                            <span className="text-fg-muted">—</span>
-                          ) : (
-                            <span className="font-bold text-accent">✓</span>
-                          )}
-                        </td>
-                        <td className="py-2 text-center text-[13px]">
-                          <span className="font-bold text-accent">✓</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* ── Right column: install card + Fitur Utama ── */}
+        <aside className="flex flex-col gap-4">
+          {/* Install card */}
+          <div className="rounded-card border border-line bg-card p-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-success">Free</span>
+              {product.priceLabel && (
+                <span className="text-[12px] text-fg-sub">· PRO <span className="font-semibold text-accent">{product.priceLabel}</span></span>
               )}
             </div>
+            <p className="mt-1 flex items-center gap-1.5 text-[12px] text-success">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              Verified · Offline-first
+            </p>
+
+            {ratingDisplay !== null && (
+              <a href="#reviews" className="mt-2 inline-flex items-center gap-1.5 text-[12px] text-fg-sub hover:text-fg">
+                <span className="text-accent">{"★".repeat(Math.round(ratingDisplay))}<span className="text-fg-muted/30">{"★".repeat(5 - Math.round(ratingDisplay))}</span></span>
+                <span className="font-semibold text-fg">{ratingDisplay.toFixed(1)}</span>
+                <span>· {ratingCount} ulasan</span>
+              </a>
+            )}
+
+            <PlatformDownload productId={product.id} installers={installerOptions} />
+
+            {hasPro && (
+              <UpgradeButton
+                productName={product.name}
+                className="mt-2 !h-10 w-full !rounded-btn !border !border-line !bg-transparent !text-[13px] !font-medium !text-fg-sub hover:!border-fg-sub hover:!text-fg"
+              >
+                <Icon name="sparkles" size={14} />
+                Upgrade to PRO
+              </UpgradeButton>
+            )}
+
+            <div className="my-4 border-t border-line" />
+
+            <InfoRow icon="monitor" label="Platform">
+              {platforms.length > 0 ? platforms.map((p) => PLATFORM_LABELS[p]).join(" · ") : "—"}
+            </InfoRow>
+            <InfoRow icon="package" label="Size">
+              {totalSize > 0 ? `${formatBytes(totalSize)} download` : "—"}
+            </InfoRow>
+            <InfoRow icon="shield" label="License">Offline-first · No telemetry</InfoRow>
+            <InfoRow icon="wifi-off" label="Works offline">Optional E2E sync</InfoRow>
+
+            <div className="my-4 border-t border-line" />
+
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+              About this product
+            </p>
+            <dl className="grid grid-cols-2 gap-y-1.5 text-[12px]">
+              <dt className="text-fg-sub">Developer</dt>
+              <dd className="flex items-center gap-1.5 text-fg">
+                <span className={cn("inline-block h-2 w-2 rounded-sm", accent.solid)} />
+                Kaemnur
+              </dd>
+              <dt className="text-fg-sub">Release date</dt>
+              <dd className="text-fg">
+                {new Date(product.createdAt).toLocaleDateString("en-US", {
+                  month: "short", day: "numeric", year: "numeric",
+                })}
+              </dd>
+              <dt className="text-fg-sub">Version</dt>
+              <dd className="font-mono text-fg">v{product.version}</dd>
+              <dt className="text-fg-sub">Installs</dt>
+              <dd className="text-fg">{formatCount(product.downloadCount)}+</dd>
+            </dl>
+          </div>
+
+          {/* Fitur Utama — stretches to match the left column */}
+          <div className="flex-1 rounded-card border border-line bg-card p-4">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+              Fitur Utama
+            </p>
+            {product.features.length === 0 ? (
+              <p className="text-[12px] text-fg-sub">Belum ada fitur yang dicantumkan.</p>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-semibold uppercase tracking-wide text-fg-muted">
+                    <th className="pb-2 font-medium">Feature</th>
+                    <th className="w-10 pb-2 text-center font-medium">Free</th>
+                    <th className="w-10 pb-2 text-center font-medium">PRO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {product.features.map((f) => (
+                    <tr key={f.id} className="border-b border-line last:border-b-0">
+                      <td className="py-2 pr-2 text-[12px] text-fg">{f.text}</td>
+                      <td className="py-2 text-center text-[13px]">
+                        {f.isPro ? (
+                          <span className="text-fg-muted">—</span>
+                        ) : (
+                          <span className="font-bold text-accent">✓</span>
+                        )}
+                      </td>
+                      <td className="py-2 text-center text-[13px]">
+                        <span className="font-bold text-accent">✓</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </aside>
       </div>
 
-      {/* ───────────────────── Bottom: full-width sections ───────────────────── */}
-      <section className="mt-10">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="text-lg font-bold text-fg">Community Discussions</h2>
-          <Link href="/community?category=General" className="text-[12px] font-medium text-accent hover:underline">
-            All discussions →
-          </Link>
-        </div>
-        {product.mentionedInTopics.length === 0 ? (
-          <div className="rounded-card border border-dashed border-line bg-card p-6 text-center">
-            <p className="text-[13px] text-fg-sub">No discussions yet. Be the first!</p>
-            <Link href="/community" className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline">
-              Start a discussion →
-            </Link>
+      {/* Bottom row — Ulasan Pengguna + Community Discussions (overview only) */}
+      {isOverview && (
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Ulasan Pengguna */}
+          <div className="rounded-card border border-line bg-card p-5">
+            <ReviewSection slug={product.slug} reviewCount={product.ratings.length} />
           </div>
-        ) : (
-          <div className="divide-y divide-line rounded-card border border-line bg-card">
-            {product.mentionedInTopics.map((topic) => (
-              <Link key={topic.id} href={`/community/${topic.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-card-hover">
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-semibold text-fg">{topic.title}</p>
-                  <p className="text-[11px] text-fg-sub">{topic.category} · {topic.authorName}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 text-[11px] text-fg-sub">
-                  <Icon name="message-square" size={11} />
-                  {topic._count.comments}
-                </div>
+
+          {/* Community Discussions */}
+          <div className="rounded-card border border-line bg-card p-5">
+            <div className="mb-3 flex items-end justify-between">
+              <h2 className="text-lg font-bold text-fg">Community Discussions</h2>
+              <Link href="/community?category=General" className="text-[12px] font-medium text-accent hover:underline">
+                All discussions →
               </Link>
-            ))}
+            </div>
+            {product.mentionedInTopics.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-line bg-bg/40 px-4 py-10 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-card text-fg-muted">
+                  <Icon name="message-square" size={22} />
+                </span>
+                <p className="text-[13px] text-fg-sub">No discussions yet. Be the first!</p>
+                <Link
+                  href="/community"
+                  className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-4 text-[12px] font-semibold text-bg hover:bg-accent-hover"
+                >
+                  <Icon name="plus" size={13} />
+                  Start a discussion
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-line">
+                {product.mentionedInTopics.map((topic) => (
+                  <Link
+                    key={topic.id}
+                    href={`/community/${topic.id}`}
+                    className="flex items-center justify-between gap-3 py-3 transition-opacity hover:opacity-80"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold text-fg">{topic.title}</p>
+                      <p className="text-[11px] text-fg-sub">{topic.category} · {topic.authorName}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1 text-[11px] text-fg-sub">
+                      <Icon name="message-square" size={11} />
+                      {topic._count.comments}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
       {otherCards.length > 0 && (
         <section className="mt-10">

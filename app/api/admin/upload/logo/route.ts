@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/auth";
-import { uploadToR2Assets } from "@/lib/r2-assets";
+import { uploadToR2Assets, isR2AssetsConfigured } from "@/lib/r2-assets";
 import { parseImageUpload } from "@/lib/upload-helpers";
 
 export const runtime = "nodejs";
@@ -10,6 +10,16 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   if (!isAdminAuthed()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isR2AssetsConfigured()) {
+    return NextResponse.json(
+      {
+        error:
+          "Storage not configured. Contact admin to set R2_ASSETS_* environment variables in Vercel dashboard.",
+      },
+      { status: 503 }
+    );
   }
 
   const form = await req.formData();

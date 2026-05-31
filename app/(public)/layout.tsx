@@ -11,25 +11,17 @@ export default async function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [products, installerCount] = await Promise.all([
-    prisma.product.findMany({
-      select: { id: true, name: true, slug: true, category: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.installer.count(),
-  ]);
-
-  const categories = Array.from(new Set(products.map((p) => p.category))).sort();
+  const products = await prisma.product.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
-    <UpgradeProvider products={products.map((p) => ({ id: p.id, name: p.name }))}>
+    <UpgradeProvider products={products}>
       <div className="min-h-screen bg-bg text-fg">
         <Navbar />
         <div className="flex">
-          <PublicSidebar
-            categories={categories}
-            installCount={installerCount}
-          />
+          <PublicSidebar />
           <main className="min-w-0 flex-1">{children}</main>
         </div>
       </div>
