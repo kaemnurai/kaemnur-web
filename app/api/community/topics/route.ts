@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     pageSize: PAGE_SIZE,
     pageCount: Math.ceil(total / PAGE_SIZE),
   });
-  res.headers.set("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
   return res;
 }
 

@@ -22,14 +22,6 @@ type Topic = {
   _count: { comments: number };
 };
 
-type Stats = {
-  topics: number;
-  members: number;
-  posts: number;
-  views: number;
-  contributors: { name: string; posts: number }[];
-};
-
 const CATEGORIES = ["All", "General", "Questions", "Bug Reports", "Suggestions"];
 
 const TAB_ICONS: Record<string, string> = {
@@ -71,8 +63,6 @@ export default function CommunityPage() {
   const [pageCount, setPageCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [subforumCounts, setSubforumCounts] = useState<Record<string, number>>({});
-  const [stats, setStats] = useState<Stats | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [pinningId, setPinningId] = useState<string | null>(null);
@@ -122,28 +112,8 @@ export default function CommunityPage() {
     setLoading(false);
   }
 
-  async function fetchCounts() {
-    const cats = CATEGORIES.filter((c) => c !== "All");
-    const counts: Record<string, number> = {};
-    await Promise.all(
-      cats.map(async (cat) => {
-        const res = await fetch(`/api/community/topics?category=${encodeURIComponent(cat)}&page=1`);
-        const d = await res.json();
-        counts[cat] = d.total;
-      })
-    );
-    setSubforumCounts(counts);
-  }
-
-  async function fetchStats() {
-    const res = await fetch("/api/community/stats");
-    if (res.ok) setStats(await res.json());
-  }
-
   useEffect(() => {
     fetchTopics(activeCategory, 1);
-    fetchCounts();
-    fetchStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -315,13 +285,6 @@ export default function CommunityPage() {
     );
   }
 
-  const statCards = [
-    { label: "Topik Aktif", value: stats?.topics ?? 0, icon: "message-square", text: "text-info", box: "bg-info/15" },
-    { label: "Member Aktif", value: stats?.members ?? 0, icon: "users", text: "text-success", box: "bg-success/15" },
-    { label: "Total Post", value: stats?.posts ?? 0, icon: "file-text", text: "text-accent", box: "bg-accent/15" },
-    { label: "Total Views", value: stats?.views ?? 0, icon: "eye", text: "text-danger", box: "bg-danger/15" },
-  ];
-
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
       {/* Header */}
@@ -363,24 +326,8 @@ export default function CommunityPage() {
         ))}
       </div>
 
-      {/* Stats bar */}
-      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-line bg-line lg:grid-cols-4">
-        {statCards.map((s) => (
-          <div key={s.label} className="flex items-center gap-3 bg-card px-5 py-4">
-            <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-lg", s.box, s.text)}>
-              <Icon name={s.icon as never} size={18} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[18px] font-bold leading-none text-fg">{formatCount(s.value)}</p>
-              <p className="mt-1 text-[11px] text-fg-sub">{s.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        {/* Main column */}
-        <div>
+      {/* Discussions — full width */}
+      <div>
           {/* Filter bar */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative">
@@ -499,75 +446,6 @@ export default function CommunityPage() {
             </div>
           )}
         </div>
-
-        {/* Sidebar */}
-        <aside className="space-y-5">
-          {/* Sub-Forums */}
-          <div className="rounded-card border border-line bg-card p-4">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg-muted">
-              Sub-Forums
-            </p>
-            <ul className="space-y-1">
-              {CATEGORIES.filter((c) => c !== "All").map((cat) => {
-                const style = CATEGORY_STYLE[cat] ?? CATEGORY_STYLE.General;
-                return (
-                  <li key={cat}>
-                    <button
-                      type="button"
-                      onClick={() => selectCategory(cat)}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-2 rounded-btn px-2 py-1.5 text-[13px] transition-colors hover:bg-card-hover",
-                        activeCategory === cat && "bg-card-hover"
-                      )}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className={cn("grid h-6 w-6 place-items-center rounded", style.bg, style.text)}>
-                          <Icon name={style.icon as never} size={12} />
-                        </span>
-                        <span className={cn(activeCategory === cat ? "font-semibold text-fg" : "text-fg-sub")}>
-                          {cat}
-                        </span>
-                      </span>
-                      <span className="text-[11px] text-fg-muted">{subforumCounts[cat] ?? 0}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-
-          {/* Top Contributors */}
-          <div className="rounded-card border border-line bg-card p-4">
-            <p className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-fg-muted">
-              <Icon name="trophy" size={12} className="text-accent" />
-              Top Contributors
-            </p>
-            {stats && stats.contributors.length > 0 ? (
-              <ul className="space-y-2.5">
-                {stats.contributors.map((c, i) => {
-                  const bg = getAvatarColor(c.name);
-                  const fg = getAvatarTextColor(bg);
-                  return (
-                    <li key={c.name} className="flex items-center gap-2.5">
-                      <span className="w-3 text-center text-[11px] font-bold text-fg-muted">{i + 1}</span>
-                      <span
-                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold"
-                        style={{ backgroundColor: bg, color: fg }}
-                      >
-                        {getInitial(c.name)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-fg">{c.name}</span>
-                      <span className="text-[11px] text-fg-muted">{c.posts} post</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-[12px] text-fg-sub">Belum ada kontributor.</p>
-            )}
-          </div>
-        </aside>
-      </div>
 
       <NewTopicModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>

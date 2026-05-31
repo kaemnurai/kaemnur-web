@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { productAccent } from "@/lib/utils";
@@ -15,6 +16,7 @@ export type HeroProduct = {
   priceLabel: string | null;
   ratingDisplay: number | null;
   ratingCount: number;
+  heroImageUrl: string | null;
   screenshots: { id: string; url: string }[];
   features: { text: string }[];
   installerPlatforms: string[];
@@ -48,10 +50,11 @@ export function Hero({ product }: { product: HeroProduct | null }) {
     );
   }
 
-  const main = product.screenshots[0];
   const accent = productAccent(product.slug);
   const [namePrefix, nameSuffix] = splitName(product.name);
   const features = product.features.slice(0, 6);
+  // Transparent hero PNG/WEBP preferred; fall back to the first screenshot.
+  const heroSrc = product.heroImageUrl || product.screenshots[0]?.url || null;
 
   const platformLabels = product.installerPlatforms
     .map((p) => PLATFORM_LABEL[p] ?? p)
@@ -62,10 +65,13 @@ export function Hero({ product }: { product: HeroProduct | null }) {
     : "/download";
 
   return (
-    <section className="relative overflow-hidden rounded-card border border-line bg-gradient-to-br from-[#12161f] via-card to-[#0c0f14]">
-      <div className="grid items-center gap-8 p-6 lg:grid-cols-[1fr_minmax(0,52%)] lg:p-8">
+    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1A1F2E] via-[#1A1F2E] to-[#0F1419]">
+      {/* Subtle orange glow behind the image — painted under the content */}
+      <div className="pointer-events-none absolute right-0 top-1/2 z-0 h-[600px] w-[600px] -translate-y-1/2 rounded-full bg-orange-500/10 blur-3xl" />
+
+      <div className="relative z-10 grid grid-cols-1 items-center gap-8 p-8 lg:grid-cols-2 lg:p-12">
         {/* LEFT: copy */}
-        <div className="min-w-0">
+        <div className="relative z-10 min-w-0">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
             <Icon name="sparkles" size={11} />
             New on Kaemnur
@@ -132,26 +138,25 @@ export function Hero({ product }: { product: HeroProduct | null }) {
           </div>
         </div>
 
-        {/* RIGHT: app mockup screenshot */}
-        <Link
-          href={`/products/${product.slug}`}
-          className="group relative block overflow-hidden rounded-card border border-line bg-bg shadow-card-lg"
-        >
-          <div className="aspect-[16/10] max-h-[360px] w-full">
-            {main ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={main.url}
-                alt={product.name}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-              />
-            ) : (
-              <div className={`grid h-full w-full place-items-center ${accent.bg}`}>
-                <span className={`text-7xl font-extrabold ${accent.fg}`}>{product.name[0]}</span>
-              </div>
-            )}
-          </div>
-        </Link>
+        {/* RIGHT: transparent hero PNG — no card wrapper, blends with background.
+            object-contain + centered → never cropped at any viewport. */}
+        <div className="relative flex h-[300px] w-full items-center justify-center sm:h-[400px] lg:h-[500px]">
+          {heroSrc ? (
+            <Image
+              src={heroSrc}
+              alt={product.name}
+              fill
+              style={{ objectFit: "contain", objectPosition: "center" }}
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              priority
+              className="pointer-events-none select-none"
+            />
+          ) : (
+            <div className={`grid h-40 w-40 place-items-center rounded-3xl ${accent.bg}`}>
+              <span className={`text-7xl font-extrabold ${accent.fg}`}>{product.name[0]}</span>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

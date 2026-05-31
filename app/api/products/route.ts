@@ -20,6 +20,6 @@ export async function GET() {
     },
   });
   const res = NextResponse.json(products);
-  res.headers.set("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
   return res;
 }

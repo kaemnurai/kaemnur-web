@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
 import { NotificationBell } from "@/components/admin/NotificationBell";
 import { AdminUserMenu } from "@/components/admin/AdminUserMenu";
 
@@ -18,22 +17,8 @@ export function AdminTopNav({ unreadCount = 0 }: { unreadCount?: number }) {
         </span>
       </Link>
 
-      {/* Actions */}
+      {/* Actions — notifications + user menu only */}
       <div className="flex items-center gap-2">
-        <Link
-          href="/"
-          className="hidden h-9 items-center gap-1.5 rounded-btn border border-line bg-card px-3 text-[12px] font-medium text-fg-sub hover:border-fg-muted hover:text-fg sm:inline-flex"
-        >
-          <Icon name="external-link" size={13} />
-          View to Store
-        </Link>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-3 text-[12px] font-semibold text-bg hover:bg-accent-hover"
-        >
-          <Icon name="plus" size={13} />
-          Produk Baru
-        </Link>
         <NotificationBell initialUnread={unreadCount} />
         <AdminUserMenu name="Admin" />
       </div>

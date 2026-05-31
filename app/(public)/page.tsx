@@ -105,6 +105,7 @@ export default async function LandingPage({
         priceLabel: featuredRaw.priceLabel,
         ratingDisplay: featuredRaw.ratingOverride ?? featuredRatingAvg,
         ratingCount: featuredRaw.ratings.length,
+        heroImageUrl: featuredRaw.heroImageUrl,
         screenshots: featuredRaw.screenshots,
         features: featuredRaw.features,
         installerPlatforms: Array.from(new Set(featuredRaw.installers.map((i) => i.platform))),

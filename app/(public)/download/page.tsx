@@ -7,6 +7,9 @@ import { SortDropdown } from "@/components/library/SortDropdown";
 import { getDisplayRating } from "@/lib/rating";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 
+// Cache the library catalog for 60s (ISR).
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Library",
   description: "Download the latest Kaemnur apps — free, offline-first installers.",

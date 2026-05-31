@@ -13,8 +13,8 @@ import { getDisplayRating } from "@/lib/rating";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-// Cache the product page for 60s (ISR) — Feature 6
-export const revalidate = 60;
+// Cache the product page for 120s (ISR) — Feature 6
+export const revalidate = 120;
 
 type TabKey = "overview" | "changelog" | "requirements";
 

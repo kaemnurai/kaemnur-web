@@ -14,7 +14,6 @@ type AdminNavItem = {
 
 export type AdminNavCounts = {
   products?: number;
-  releases?: number;
   licenses?: number;
   unreadCount?: number;
 };
@@ -29,12 +28,6 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
       label: "Products",
       icon: "package",
       badge: counts?.products ? String(counts.products) : undefined,
-    },
-    {
-      href: "/admin/installers",
-      label: "Releases",
-      icon: "download",
-      badge: counts?.releases ? String(counts.releases) : undefined,
     },
     {
       href: "/admin/licenses",
@@ -59,20 +52,6 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
 
   return (
     <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[200px] shrink-0 flex-col border-r border-line bg-sidebar lg:flex">
-      {/* User card: yellow K avatar + name + role + unread badge */}
-      <div className="flex items-center gap-2 border-b border-line px-3 py-3">
-        <span className="grid h-9 w-9 place-items-center rounded-btn bg-accent text-[14px] font-bold text-bg">K</span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-fg">Kaemnur</p>
-          <p className="truncate text-[11px] text-fg-sub">Admin</p>
-        </div>
-        {counts?.unreadCount ? (
-          <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold text-bg">
-            {counts.unreadCount > 9 ? "9+" : counts.unreadCount}
-          </span>
-        ) : null}
-      </div>
-
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         <NavSection label="Workspace" items={workspaceItems} isActive={isActive} />

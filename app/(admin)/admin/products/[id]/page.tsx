@@ -10,8 +10,6 @@ import { formatBytes, formatDate } from "@/lib/utils";
 import {
   updateProduct,
   deleteProduct,
-  addScreenshot,
-  deleteScreenshot,
   addFeature,
   deleteFeature,
   addChangelog,
@@ -23,7 +21,9 @@ import {
 import { RatingsPanel } from "@/components/admin/RatingsPanel";
 import { ProductTabs, type ProductTab } from "./ProductTabs";
 import { LogoUploader } from "./LogoUploader";
+import { FeaturedHeroCard } from "./FeaturedHeroCard";
 import { DescriptionField } from "./DescriptionField";
+import { ScreenshotManager } from "./ScreenshotManager";
 
 const PLATFORM_LABELS: Record<string, string> = {
   WINDOWS: "Windows",
@@ -166,80 +166,22 @@ export default async function EditProductPage({ params }: { params: { id: string
           </p>
         </Card>
 
-        <Card title="Featured">
-          <label className="flex items-center gap-2 text-[13px] text-fg">
-            <input
-              type="checkbox"
-              name="isFeatured"
-              defaultChecked={product.isFeatured}
-              className="h-4 w-4 accent-[#F4B400]"
-            />
-            Featured on landing page
-          </label>
-        </Card>
+        <FeaturedHeroCard
+          productSlug={product.slug}
+          initialHeroImageUrl={product.heroImageUrl}
+          initialFeatured={product.isFeatured}
+        />
       </div>
     </form>
   );
 
   /* ───────────── Media ───────────── */
   const mediaTab = (
-    <Card
-      title="Screenshots"
-      subtitle="PNG, JPG or WEBP. Maks 5MB per file."
-      action={
-        <form action={addScreenshot} className="flex items-center gap-2">
-          <input type="hidden" name="productId" value={product.id} />
-          <input
-            name="url"
-            type="url"
-            required
-            placeholder="https://image-url…"
-            className="h-9 w-56 rounded-btn border border-line bg-bg px-3 text-[12px] text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
-          />
-          <button type="submit" className={btnYellow}>
-            <Icon name="plus" size={13} />
-            Add screenshot
-          </button>
-        </form>
-      }
-    >
-      <p className="mb-4 text-[13px] text-fg-sub">
-        {product.screenshots.length} screenshot{product.screenshots.length !== 1 ? "s" : ""}
-      </p>
-      {product.screenshots.length === 0 ? (
-        <div className="grid place-items-center rounded-btn border border-dashed border-line py-12 text-[13px] text-fg-sub">
-          Belum ada screenshot. Tempel URL gambar di atas untuk menambah.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {product.screenshots.map((s, i) => (
-            <div
-              key={s.id}
-              className="group relative overflow-hidden rounded-btn border border-line bg-bg"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.url} alt="" className="aspect-video w-full object-cover" />
-              <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded bg-bg/80 text-[11px] font-semibold text-fg">
-                {i + 1}
-              </span>
-              <span className="absolute bottom-2 left-2 grid h-6 w-6 place-items-center rounded bg-bg/80 text-fg-sub">
-                <Icon name="more-horizontal" size={14} />
-              </span>
-              <form action={deleteScreenshot} className="absolute right-2 top-2">
-                <input type="hidden" name="id" value={s.id} />
-                <input type="hidden" name="productId" value={product.id} />
-                <ConfirmSubmit
-                  className="grid h-6 w-6 place-items-center rounded bg-danger/80 p-0 text-white opacity-0 transition-opacity hover:bg-danger group-hover:opacity-100"
-                  title="Hapus screenshot"
-                >
-                  <Icon name="trash" size={13} />
-                </ConfirmSubmit>
-              </form>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+    <ScreenshotManager
+      productId={product.id}
+      productSlug={product.slug}
+      initial={product.screenshots}
+    />
   );
 
   /* ───────────── Downloads ───────────── */
@@ -521,7 +463,7 @@ export default async function EditProductPage({ params }: { params: { id: string
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-4">
             <LogoUploader
-              productId={product.id}
+              productSlug={product.slug}
               initialLogoUrl={product.logoUrl}
               initial={product.name[0]?.toUpperCase() ?? "P"}
             />

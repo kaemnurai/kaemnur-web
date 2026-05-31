@@ -63,22 +63,26 @@ export async function createProduct(form: FormData) {
 export async function updateProduct(form: FormData) {
   assertAdmin();
   const id = str(form, "id");
+  const slug = str(form, "slug");
   await prisma.product.update({
     where: { id },
     data: {
       name: str(form, "name"),
-      slug: str(form, "slug"),
+      slug,
       tagline: str(form, "tagline") || null,
       description: str(form, "description"),
       version: str(form, "version"),
       category: str(form, "category"),
       isFeatured: form.get("isFeatured") === "on",
+      logoUrl: str(form, "logoUrl") || null,
+      heroImageUrl: str(form, "heroImageUrl") || null,
       ...parsePricing(form),
     },
   });
   revalidatePath(`/admin/products/${id}`);
   revalidatePath("/admin/products");
   revalidatePath("/");
+  revalidatePath(`/products/${slug}`);
 }
 
 export async function saveProductLogo(id: string, logoUrl: string | null) {
@@ -118,6 +122,35 @@ export async function deleteScreenshot(form: FormData) {
   const productId = str(form, "productId");
   await prisma.productScreenshot.delete({ where: { id: str(form, "id") } });
   revalidatePath(`/admin/products/${productId}`);
+}
+
+// Typed variants used by the client-side ScreenshotManager (R2 uploads).
+export async function createScreenshot(productId: string, url: string) {
+  assertAdmin();
+  const count = await prisma.productScreenshot.count({ where: { productId } });
+  const created = await prisma.productScreenshot.create({
+    data: { productId, url, order: count },
+  });
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { slug: true },
+  });
+  revalidatePath(`/admin/products/${productId}`);
+  if (product) revalidatePath(`/products/${product.slug}`);
+  revalidatePath("/");
+  return { id: created.id, url: created.url, order: created.order };
+}
+
+export async function removeScreenshot(id: string, productId: string) {
+  assertAdmin();
+  await prisma.productScreenshot.delete({ where: { id } });
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { slug: true },
+  });
+  revalidatePath(`/admin/products/${productId}`);
+  if (product) revalidatePath(`/products/${product.slug}`);
+  revalidatePath("/");
 }
 
 // ─── Features ──────────────────────────────────────────────────────────

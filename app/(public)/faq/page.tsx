@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Icon } from "@/components/ui/Icon";
 import { FaqAccordion, type FaqItem } from "@/components/faq/FaqAccordion";
 
+// FAQ is mostly static — long ISR window.
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "FAQ — Pusat Bantuan",
   description:
@@ -80,35 +83,32 @@ function WhatsAppIcon({ size = 18 }: { size?: number }) {
 
 export default function FaqPage() {
   return (
-    <div className="px-4 py-8 lg:px-8 lg:py-10">
-      {/* Header */}
-      <div className="relative mb-8 overflow-hidden rounded-card border border-line bg-card px-6 py-8 lg:px-8">
-        <div className="relative z-10 max-w-2xl">
+    <div className="px-4 py-6 lg:px-8 lg:py-8">
+      {/* Header — matches Community page header structure */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">FAQ</p>
-          <h1 className="mt-2 text-3xl font-bold text-fg md:text-4xl">
-            Pertanyaan yang Sering Diajukan
-          </h1>
-          <p className="mt-3 text-[14px] text-fg-sub">
+          <h1 className="mt-1 text-2xl font-bold text-fg">Pertanyaan yang Sering Diajukan</h1>
+          <p className="mt-1.5 text-[13px] text-fg-sub">
             Temukan jawaban seputar download, lisensi, aktivasi, pembaruan, dan
             penggunaan aplikasi Kaemnur.
           </p>
         </div>
 
-        {/* Decorative illustration — question speech bubbles */}
-        <div className="pointer-events-none absolute -right-4 top-1/2 hidden -translate-y-1/2 select-none lg:block">
-          <div className="relative h-40 w-52">
-            <div className="absolute right-24 top-2 grid h-12 w-12 place-items-center rounded-2xl border border-line bg-bg/60 text-fg-muted">
-              <Icon name="help-circle" size={22} />
+        {/* FAQ illustration — question speech bubbles */}
+        <div className="pointer-events-none hidden select-none sm:block">
+          <div className="relative h-20 w-44">
+            <div className="absolute right-28 top-1 grid h-10 w-10 place-items-center rounded-2xl border border-line bg-card text-fg-muted">
+              <Icon name="help-circle" size={18} />
             </div>
-            <div className="absolute right-2 top-10 grid h-24 w-24 place-items-center rounded-3xl bg-accent text-bg shadow-card-lg">
-              <span className="text-5xl font-black leading-none">?</span>
+            <div className="absolute right-2 top-0 grid h-16 w-16 place-items-center rounded-3xl bg-accent text-bg shadow-card-lg">
+              <span className="text-4xl font-black leading-none">?</span>
             </div>
-            <div className="absolute right-28 bottom-2 grid h-10 w-10 place-items-center rounded-xl border border-line bg-bg/60 text-accent">
-              <Icon name="message-circle" size={18} />
+            <div className="absolute bottom-0 right-24 grid h-9 w-9 place-items-center rounded-xl border border-line bg-card text-accent">
+              <Icon name="message-circle" size={16} />
             </div>
           </div>
         </div>
-        <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-accent/10 blur-3xl" />
       </div>
 
       {/* Two column layout */}

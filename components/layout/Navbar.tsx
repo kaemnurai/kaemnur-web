@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -151,9 +152,9 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 h-12 border-b border-line bg-sidebar">
       <div className="flex h-full items-center gap-6 px-4">
-        {/* Logo — circular yellow badge with K */}
+        {/* Logo — Kaemnur mark + wordmark */}
         <Link href="/" className="flex shrink-0 items-center gap-2 pr-2 text-fg" aria-label="Kaemnur home">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-accent text-[15px] font-extrabold text-bg">K</span>
+          <Image src="/logo-dark.png" alt="Kaemnur" width={28} height={28} priority className="h-7 w-7 object-contain" />
           <span className="text-[15px] font-bold tracking-tight">Kaemnur</span>
         </Link>
 

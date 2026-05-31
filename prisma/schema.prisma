@@ -22,7 +22,8 @@ model Product {
   name          String
   slug          String   @unique
   tagline       String? // short one-liner for hero / cards
-  logoUrl       String? // product logo image (Supabase storage); falls back to initial
+  logoUrl       String? // product logo image (Cloudflare R2 assets); falls back to initial
+  heroImageUrl  String? // transparent PNG/WEBP for the homepage hero (R2 assets)
   description   String
   version       String
   category      String
