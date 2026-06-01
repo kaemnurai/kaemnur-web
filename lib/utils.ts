@@ -26,6 +26,17 @@ export function formatCount(n: number): string {
   return String(n);
 }
 
+/** Format a Rupiah amount with thousands separators: 149000 → "Rp 149.000". */
+export function formatRupiah(amount: number): string {
+  return `Rp ${amount.toLocaleString("id-ID")}`;
+}
+
+/** Validate an Indonesian mobile number (08…, 62…, or +62…). */
+export function isValidIndonesianPhone(input: string): boolean {
+  const normalized = normalizeWhatsapp(input);
+  return /^628\d{7,11}$/.test(normalized);
+}
+
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "6282111990423";
 
 /** Build the pre-filled wa.me upgrade link used by the PRO funnel. */

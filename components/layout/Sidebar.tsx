@@ -35,6 +35,7 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
       icon: "key",
       badge: counts?.licenses ? String(counts.licenses) : undefined,
     },
+    { href: "/admin/settings", label: "Settings", icon: "tool" },
   ];
 
   const communityItems: AdminNavItem[] = [

@@ -12,7 +12,8 @@ type Notification = {
   message: string;
   isRead: boolean;
   createdAt: string;
-  topic: { id: string; title: string };
+  topic: { id: string; title: string } | null;
+  order?: { id: string; orderNumber: string } | null;
 };
 
 function relativeTime(date: string): string {
@@ -27,6 +28,7 @@ function relativeTime(date: string): string {
 function typeIcon(type: string): string {
   if (type === "new_comment") return "💬";
   if (type === "product_mention") return "🏷";
+  if (type === "new_order") return "🛒";
   return "📝";
 }
 
@@ -91,7 +93,8 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       setUnread((v) => Math.max(0, v - 1));
     }
     setOpen(false);
-    router.push(`/community/${n.topic.id}`);
+    if (n.topic) router.push(`/community/${n.topic.id}`);
+    else router.push("/admin/notifications");
   }
 
   return (

@@ -19,12 +19,14 @@ function relativeTime(date: Date): string {
 function typeIcon(type: string): string {
   if (type === "new_comment") return "💬";
   if (type === "product_mention") return "🏷";
+  if (type === "new_order") return "🛒";
   return "📝";
 }
 
 function typeLabel(type: string): string {
   if (type === "new_comment") return "Comment";
   if (type === "product_mention") return "Mention";
+  if (type === "new_order") return "Order";
   return "New Topic";
 }
 
@@ -46,7 +48,10 @@ export default async function AdminNotificationsPage({
     prisma.notification.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { topic: { select: { id: true, title: true, category: true } } },
+      include: {
+        topic: { select: { id: true, title: true, category: true } },
+        order: { select: { id: true, orderNumber: true } },
+      },
     }),
     prisma.notification.count({ where: { isRead: false } }),
   ]);
@@ -130,9 +135,15 @@ export default async function AdminNotificationsPage({
                       <span className="rounded bg-line px-2 py-0.5 text-[10px] font-semibold">{typeLabel(n.type)}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/community/${n.topic.id}`} className="truncate text-accent hover:underline max-w-[150px] block">
-                        {n.topic.title}
-                      </Link>
+                      {n.topic ? (
+                        <Link href={`/community/${n.topic.id}`} className="block max-w-[150px] truncate text-accent hover:underline">
+                          {n.topic.title}
+                        </Link>
+                      ) : n.order ? (
+                        <span className="font-mono text-[12px] text-fg-sub">{n.order.orderNumber}</span>
+                      ) : (
+                        <span className="text-fg-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-fg-sub">{relativeTime(n.createdAt)}</td>
                     <td className="px-4 py-3">
@@ -143,9 +154,13 @@ export default async function AdminNotificationsPage({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/community/${n.topic.id}`} className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-medium text-accent hover:bg-card-hover">
-                        Go →
-                      </Link>
+                      {n.topic ? (
+                        <Link href={`/community/${n.topic.id}`} className="inline-flex h-7 items-center gap-1 rounded px-2 text-[11px] font-medium text-accent hover:bg-card-hover">
+                          Go →
+                        </Link>
+                      ) : (
+                        <span className="text-[11px] text-fg-muted">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 import { ScreenshotGallery } from "@/components/product/ScreenshotGallery";
 import { ChangelogAccordion } from "@/components/product/ChangelogAccordion";
 import { ProductCard, type ProductCardData } from "@/components/product/ProductCard";
-import { UpgradeButton } from "@/components/sections/UpgradeButton";
+import { UpgradeProButton } from "@/components/product/UpgradeProButton";
 import { PlatformDownload } from "@/components/product/PlatformDownload";
 import { ReviewSection } from "@/components/product/ReviewSection";
 import { getDisplayRating } from "@/lib/rating";
@@ -281,13 +281,14 @@ export default async function ProductPage({
             <PlatformDownload productId={product.id} installers={installerOptions} />
 
             {hasPro && (
-              <UpgradeButton
-                productName={product.name}
-                className="mt-2 !h-10 w-full !rounded-btn !border !border-line !bg-transparent !text-[13px] !font-medium !text-fg-sub hover:!border-fg-sub hover:!text-fg"
+              <UpgradeProButton
+                productId={product.id}
+                slug={product.slug}
+                className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-btn border border-line bg-transparent text-[13px] font-medium text-fg-sub transition-colors hover:border-fg-sub hover:text-fg disabled:opacity-60"
               >
                 <Icon name="sparkles" size={14} />
                 Upgrade to PRO
-              </UpgradeButton>
+              </UpgradeProButton>
             )}
 
             <div className="my-4 border-t border-line" />

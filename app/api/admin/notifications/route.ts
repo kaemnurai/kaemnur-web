@@ -10,7 +10,10 @@ export async function GET() {
 
   const notifications = await prisma.notification.findMany({
     orderBy: { createdAt: "desc" },
-    include: { topic: { select: { id: true, title: true, category: true } } },
+    include: {
+      topic: { select: { id: true, title: true, category: true } },
+      order: { select: { id: true, orderNumber: true } },
+    },
   });
 
   return NextResponse.json(notifications);

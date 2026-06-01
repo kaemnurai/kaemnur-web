@@ -44,6 +44,7 @@ model Product {
   requirements      ProductRequirement[]
   mentionedInTopics Topic[]  @relation("TopicMentions")
   ratings           ProductRating[]
+  orders            Order[]
 
   @@index([category])
 }
@@ -108,6 +109,7 @@ model License {
   createdAt         DateTime  @default(now())
   product           Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   user              UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order             Order?
 
   @@index([productId])
   @@index([key])
@@ -182,14 +184,17 @@ model Comment {
 
 model Notification {
   id        String   @id @default(cuid())
-  type      String   // 'new_topic' | 'new_comment' | 'product_mention'
-  topicId   String
+  type      String   // 'new_topic' | 'new_comment' | 'product_mention' | 'new_order'
+  topicId   String?
+  orderId   String?
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([topicId])
+  @@index([orderId])
   @@index([isRead])
   @@index([createdAt])
 }
@@ -208,6 +213,7 @@ model UserProfile {
   ratings      ProductRating[]
   downloadLogs DownloadLog[]
   licenses     License[]
+  orders       Order[]
 }
 
 model ProductRating {
@@ -223,4 +229,47 @@ model ProductRating {
   @@unique([productId, userId]) // one rating per user per product
   @@index([productId])
   @@index([userId])
+}
+
+// ─── Orders / Checkout ──────────────────────────────────────────────────────
+
+enum OrderStatus {
+  BELUM_BAYAR
+  MENUNGGU_KONFIRMASI
+  SUDAH_DIBAYAR
+  DIBATALKAN
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  userId        String
+  user          UserProfile @relation(fields: [userId], references: [id])
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  productName   String // snapshot at order time
+  amount        Int // Rupiah
+  customerName  String
+  customerPhone String
+  status        OrderStatus @default(BELUM_BAYAR)
+  licenseId     String?     @unique
+  license       License?    @relation(fields: [licenseId], references: [id])
+  paidClickedAt DateTime?
+  approvedAt    DateTime?
+  approvedBy    String?
+  notifications Notification[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+}
+
+model AppSettings {
+  id            String   @id @default("singleton")
+  qrisImageUrl  String?
+  qrisName      String?
+  adminWhatsapp String?
+  updatedAt     DateTime @updatedAt
 }
