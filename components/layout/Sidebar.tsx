@@ -16,6 +16,7 @@ export type AdminNavCounts = {
   products?: number;
   licenses?: number;
   unreadCount?: number;
+  pendingOrders?: number;
 };
 
 export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
@@ -34,6 +35,12 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
       label: "Licenses",
       icon: "key",
       badge: counts?.licenses ? String(counts.licenses) : undefined,
+    },
+    {
+      href: "/admin/orders",
+      label: "Transaksi",
+      icon: "tag",
+      badge: counts?.pendingOrders ? String(counts.pendingOrders) : undefined,
     },
     { href: "/admin/settings", label: "Settings", icon: "tool" },
   ];

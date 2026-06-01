@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { Icon } from "@/components/ui/Icon";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
-import { maskLicenseKey } from "@/lib/license";
 import { ProfileEditForm } from "@/components/account/ProfileEditForm";
 import { AvatarUpload } from "@/components/account/AvatarUpload";
 import { SignOutButton } from "@/components/account/SignOutButton";
@@ -142,10 +141,11 @@ export default async function AccountPage() {
     const expired = l.expiresAt ? new Date(l.expiresAt) < new Date() : false;
     return {
       id: l.id,
-      maskedKey: maskLicenseKey(l.key),
+      fullKey: l.key,
       productName: l.product.name,
-      status: expired ? "expired" : l.isActivated ? "aktif" : "belum",
-      expiry: l.expiresAt ? `Berlaku s/d ${tanggalSingkat(l.expiresAt)}` : "Selamanya",
+      status: expired ? "expired" : "aktif",
+      lifetime: l.expiresAt === null,
+      expiry: l.expiresAt ? `Berlaku s/d ${tanggalSingkat(l.expiresAt)}` : "Seumur hidup",
       date: tanggalSingkat(l.createdAt),
     };
   });

@@ -184,9 +184,10 @@ model Comment {
 
 model Notification {
   id        String   @id @default(cuid())
-  type      String   // 'new_topic' | 'new_comment' | 'product_mention' | 'new_order'
+  type      String   // 'new_topic' | 'new_comment' | 'product_mention' | 'new_order' | 'order_approved'
   topicId   String?
   orderId   String?
+  userId    String?  // user-targeted notification (null = admin-facing)
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -195,6 +196,7 @@ model Notification {
 
   @@index([topicId])
   @@index([orderId])
+  @@index([userId])
   @@index([isRead])
   @@index([createdAt])
 }

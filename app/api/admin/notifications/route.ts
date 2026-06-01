@@ -9,6 +9,7 @@ export async function GET() {
   if (!isAdminAuthed()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const notifications = await prisma.notification.findMany({
+    where: { userId: null }, // admin-facing only (user-targeted have userId set)
     orderBy: { createdAt: "desc" },
     include: {
       topic: { select: { id: true, title: true, category: true } },

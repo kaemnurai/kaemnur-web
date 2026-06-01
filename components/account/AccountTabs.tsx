@@ -16,9 +16,10 @@ export type InstallItem = {
 
 export type LicenseItem = {
   id: string;
-  maskedKey: string;
+  fullKey: string;
   productName: string;
-  status: "aktif" | "expired" | "belum";
+  status: "aktif" | "expired";
+  lifetime: boolean;
   expiry: string;
   date: string;
 };
@@ -104,6 +105,70 @@ function Empty({
       <p className="mt-3 text-[13px] font-medium text-fg">{title}</p>
       {children}
     </div>
+  );
+}
+
+// One license row with masked key + reveal/copy toggle.
+function LicenseRow({ l }: { l: LicenseItem }) {
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const parts = l.fullKey.split("-");
+  const masked = parts.length === 4 ? `${parts[0]}-••••-••••-${parts[3]}` : l.fullKey;
+
+  async function copyKey() {
+    await navigator.clipboard.writeText(l.fullKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <li className="rounded-btn border border-line bg-bg px-3 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Logo name={l.productName} />
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-semibold text-fg">{l.productName}</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-mono text-[12px] text-fg-sub">{revealed ? l.fullKey : masked}</span>
+              <button
+                type="button"
+                onClick={() => setRevealed((v) => !v)}
+                className="text-[11px] font-medium text-accent hover:underline"
+              >
+                {revealed ? "Sembunyikan" : "Tampilkan"}
+              </button>
+              <button
+                type="button"
+                onClick={copyKey}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-fg-sub hover:text-fg"
+              >
+                <Icon name="copy" size={11} />
+                {copied ? "Tersalin!" : "Salin"}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {l.status === "expired" ? (
+            <span className="inline-flex items-center gap-1.5 rounded bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger">
+              <span className="h-1.5 w-1.5 rounded-full bg-danger" />
+              Expired
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              Aktif
+            </span>
+          )}
+          {l.lifetime && (
+            <span className="rounded bg-accent/15 px-2 py-0.5 text-[10px] font-semibold text-accent">
+              Seumur Hidup
+            </span>
+          )}
+          <span className="text-[11px] text-fg-muted">{l.date}</span>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -278,56 +343,34 @@ export function AccountTabs({
       {/* ── Lisensi Saya ── */}
       <SectionCard title="Lisensi Saya" icon="key">
         {licenses.length === 0 ? (
-          <Empty icon="key" title="Belum ada lisensi tertaut">
+          <Empty icon="key" title="Belum ada lisensi">
             <p className="mx-auto mt-1.5 max-w-xs text-[12px] leading-relaxed text-fg-sub">
-              Lisensi PRO akan muncul di sini setelah tim Kaemnur menautkan kunci ke akun Anda.
+              Belum ada lisensi. Beli produk PRO untuk mendapatkan lisensi.
             </p>
-            {waLink && (
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-4 text-[12px] font-semibold text-bg transition-colors hover:bg-accent-hover"
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <Link
+                href="/store"
+                className="inline-flex h-9 items-center gap-1.5 rounded-btn bg-accent px-4 text-[12px] font-semibold text-bg transition-colors hover:bg-accent-hover"
               >
-                <Icon name="message-circle" size={14} />
-                Hubungi Lisensi
-              </a>
-            )}
+                <Icon name="tag" size={14} />
+                Jelajahi produk PRO
+              </Link>
+              {waLink && (
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[12px] font-medium text-fg-sub hover:text-accent"
+                >
+                  Butuh bantuan? Hubungi Admin
+                </a>
+              )}
+            </div>
           </Empty>
         ) : (
           <ul className="space-y-2">
             {licenses.map((l) => (
-              <li
-                key={l.id}
-                className="flex items-center justify-between gap-3 rounded-btn border border-line bg-bg px-3 py-2.5"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <Logo name={l.productName} />
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-semibold text-fg">{l.productName}</p>
-                    <p className="truncate font-mono text-[12px] text-fg-sub">{l.maskedKey}</p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  {l.status === "expired" ? (
-                    <span className="inline-flex items-center gap-1.5 rounded bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger">
-                      <span className="h-1.5 w-1.5 rounded-full bg-danger" />
-                      Expired
-                    </span>
-                  ) : l.status === "aktif" ? (
-                    <span className="inline-flex items-center gap-1.5 rounded bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                      Aktif
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded bg-line px-2 py-0.5 text-[11px] font-semibold text-fg-sub">
-                      <span className="h-1.5 w-1.5 rounded-full bg-fg-muted" />
-                      Belum Aktif
-                    </span>
-                  )}
-                  <span className="text-[11px] text-fg-muted">{l.expiry}</span>
-                </div>
-              </li>
+              <LicenseRow key={l.id} l={l} />
             ))}
           </ul>
         )}

@@ -37,8 +37,8 @@ export default async function AdminNotificationsPage({
 }) {
   const filter = searchParams.filter || "all";
 
-  type NotifWhere = { isRead?: boolean; type?: string };
-  const where: NotifWhere = {};
+  type NotifWhere = { isRead?: boolean; type?: string; userId?: null };
+  const where: NotifWhere = { userId: null }; // admin-facing only
   if (filter === "unread") where.isRead = false;
   else if (filter === "topics") where.type = "new_topic";
   else if (filter === "comments") where.type = "new_comment";
@@ -53,7 +53,7 @@ export default async function AdminNotificationsPage({
         order: { select: { id: true, orderNumber: true } },
       },
     }),
-    prisma.notification.count({ where: { isRead: false } }),
+    prisma.notification.count({ where: { isRead: false, userId: null } }),
   ]);
 
   const FILTERS = [
