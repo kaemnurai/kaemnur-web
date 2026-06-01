@@ -117,7 +117,7 @@ export default async function AdminLicensesPage({
 
         <LicenseFilters products={products} />
 
-        <section className="overflow-hidden rounded-card border border-line bg-card">
+        <section className="overflow-x-auto rounded-card border border-line bg-card">
           {licenses.length === 0 ? (
             <p className="px-4 py-12 text-center text-[13px] text-fg-sub">
               {q || status !== "all" || productId

@@ -102,6 +102,7 @@ export function Navbar() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,8 +159,8 @@ export function Navbar() {
           <span className="text-[15px] font-bold tracking-tight">Kaemnur</span>
         </Link>
 
-        {/* Center tabs — horizontally centered, active item gets a yellow underline */}
-        <nav className="flex h-full flex-1 items-center justify-center gap-6">
+        {/* Center tabs — desktop only; mobile uses the bottom nav */}
+        <nav className="hidden h-full flex-1 items-center justify-center gap-6 md:flex">
           {tabs.map((t) => (
             <Link
               key={t.href}
@@ -215,8 +216,18 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Right cluster */}
-        <div className="ml-auto flex items-center gap-2">
+        {/* Mobile search button — opens a full-width overlay */}
+        <button
+          type="button"
+          onClick={() => setMobileSearchOpen(true)}
+          aria-label="Cari produk"
+          className="ml-auto grid h-11 w-11 place-items-center rounded-btn text-fg-sub active:opacity-70 md:hidden"
+        >
+          <Icon name="search" size={18} />
+        </button>
+
+        {/* Right cluster — desktop only (mobile uses bottom-nav Account) */}
+        <div className="ml-auto hidden items-center gap-2 md:flex">
           {user ? (
             /* Logged-in user dropdown */
             <div className="relative" ref={userMenuRef}>
@@ -267,6 +278,41 @@ export function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Mobile full-width search overlay */}
+      {mobileSearchOpen && (
+        <div className="absolute inset-x-0 top-0 z-50 flex h-12 items-center gap-2 bg-sidebar px-4 md:hidden">
+          <label className="flex h-9 flex-1 items-center gap-2 rounded-btn border border-line bg-card px-3 text-[13px] text-fg-sub focus-within:border-accent/60">
+            <Icon name="search" size={14} className="shrink-0 text-fg-muted" />
+            <input
+              autoFocus
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setMobileSearchOpen(false);
+                  submitSearch();
+                }
+              }}
+              placeholder="Cari produk"
+              className="flex-1 bg-transparent outline-none placeholder:text-fg-muted"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSearchOpen(false);
+              setQuery("");
+            }}
+            aria-label="Tutup pencarian"
+            className="grid h-9 w-9 place-items-center text-fg-sub active:opacity-70"
+          >
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+      )}
     </header>
   );
 }

@@ -120,7 +120,66 @@ export default async function AdminProductsPage({
               {q || category ? "Tidak ada produk yang cocok dengan filter." : "Belum ada produk — klik “Produk Baru” untuk menambah."}
             </p>
           ) : (
-            <table className="w-full text-left text-[13px]">
+            <>
+              {/* Mobile card list */}
+              <ul className="divide-y divide-line md:hidden">
+                {products.map((p) => {
+                  const accent = productAccent(p.slug);
+                  const published = p._count.installers > 0;
+                  return (
+                    <li key={p.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-btn text-[16px] font-bold ${accent.bg} ${accent.fg}`}>
+                          {p.name[0]}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/admin/products/${p.id}`} className="block truncate font-medium text-fg">
+                            {p.name}
+                          </Link>
+                          <p className="text-[11px] text-fg-muted">v{p.version} · {p.category}</p>
+                          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-fg-sub">
+                            <span>{p._count.installers} installer</span>
+                            <span>{p._count.licenses} lisensi</span>
+                            <span>{formatCount(p.downloadCount)} unduhan</span>
+                          </div>
+                        </div>
+                        {published ? (
+                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
+                            <span className="h-1.5 w-1.5 rounded-full bg-success" />Published
+                          </span>
+                        ) : (
+                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-warning">
+                            <span className="h-1.5 w-1.5 rounded-full bg-warning" />Draft
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <Link
+                          href={`/admin/products/${p.id}`}
+                          className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-btn border border-line text-[12px] font-medium text-fg-sub active:opacity-70"
+                        >
+                          <Icon name="edit" size={13} />
+                          Edit
+                        </Link>
+                        <form action={deleteProduct} className="flex-1">
+                          <input type="hidden" name="id" value={p.id} />
+                          <ConfirmSubmit
+                            confirm={`Hapus "${p.name}" beserta semua datanya?`}
+                            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-btn border border-danger/40 text-[12px] font-medium text-danger active:opacity-70"
+                            title="Hapus produk"
+                          >
+                            <Icon name="trash" size={13} />
+                            Hapus
+                          </ConfirmSubmit>
+                        </form>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {/* Desktop table */}
+              <table className="hidden w-full text-left text-[13px] md:table">
               <thead>
                 <tr className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-muted">
                   <th className="px-4 py-3 font-medium">Product</th>
@@ -211,7 +270,8 @@ export default async function AdminProductsPage({
                   );
                 })}
               </tbody>
-            </table>
+              </table>
+            </>
           )}
         </section>
 

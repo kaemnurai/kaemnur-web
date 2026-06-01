@@ -152,7 +152,7 @@ export default async function AdminDashboard({
 
       <div className="space-y-5 p-6">
         {/* Stat cards with colored icon tiles + real trend % */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <StatCard label="Total Produk" value={String(productCount)} icon="package" tone="orange" note="di katalog" />
           <StatCard
             label="Total Download"
@@ -238,6 +238,7 @@ export default async function AdminDashboard({
           {products.length === 0 ? (
             <p className="px-4 py-8 text-center text-[13px] text-fg-sub">Belum ada produk.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
                 <tr className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-muted">
@@ -294,6 +295,7 @@ export default async function AdminDashboard({
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </section>
       </div>

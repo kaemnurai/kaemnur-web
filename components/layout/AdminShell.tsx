@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { AdminTopNav } from "@/components/admin/AdminTopNav";
 import { AdminMarker } from "@/components/admin/AdminMarker";
 import { AdminOrderNotifier } from "@/components/admin/AdminOrderNotifier";
+import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
 import { Toaster } from "@/components/ui/Toast";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -28,8 +29,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       <AdminTopNav unreadCount={unreadCount} />
       <div className="flex flex-1">
         <Sidebar counts={{ products, licenses, unreadCount, pendingOrders }} />
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
       </div>
+      <AdminBottomNav pendingOrders={pendingOrders} />
       <Toaster />
     </div>
   );

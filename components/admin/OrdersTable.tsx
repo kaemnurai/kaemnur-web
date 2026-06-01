@@ -121,11 +121,46 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
 
   return (
     <>
-      <section className="overflow-x-auto rounded-card border border-line bg-card">
+      <section className="rounded-card border border-line bg-card">
         {rows.length === 0 ? (
           <p className="px-4 py-12 text-center text-[13px] text-fg-sub">Tidak ada transaksi.</p>
         ) : (
-          <table className="w-full text-left text-[13px]">
+          <>
+            {/* Mobile cards */}
+            <ul className="divide-y divide-line md:hidden">
+              {rows.map((o) => (
+                <li key={o.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-fg">{o.customerName}</p>
+                      <p className="text-[11px] text-fg-sub">{o.customerPhone || "—"}</p>
+                    </div>
+                    <StatusBadge status={o.status} />
+                  </div>
+                  <div className="mt-2 text-[12px] text-fg-sub">
+                    <p className="truncate">{o.productName}</p>
+                    <p className="font-mono text-[11px]">{o.orderNumber}</p>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-[15px] font-bold text-accent">{formatRupiah(o.amount)}</span>
+                    <div className="flex items-center gap-2">
+                      <AgeBadge o={o} />
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(o.id)}
+                        className="inline-flex h-9 items-center rounded-btn border border-line px-3 text-[12px] font-medium text-fg-sub active:opacity-70"
+                      >
+                        Detail
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="text-[10px] font-semibold uppercase tracking-[0.12em] text-fg-muted">
                 <th className="px-4 py-3 font-medium">Customer</th>
@@ -163,7 +198,9 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+              </table>
+            </div>
+          </>
         )}
       </section>
 
