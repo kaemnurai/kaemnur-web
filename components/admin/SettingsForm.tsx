@@ -10,6 +10,7 @@ type Initial = {
   qrisImageUrl: string | null;
   qrisName: string | null;
   adminWhatsapp: string | null;
+  trakteerUrl: string | null;
 };
 
 export function SettingsForm({ initial }: { initial: Initial }) {
@@ -17,6 +18,7 @@ export function SettingsForm({ initial }: { initial: Initial }) {
   const [qrisUrl, setQrisUrl] = useState<string | null>(initial.qrisImageUrl);
   const [qrisName, setQrisName] = useState(initial.qrisName ?? "");
   const [adminWhatsapp, setAdminWhatsapp] = useState(initial.adminWhatsapp ?? "");
+  const [trakteerUrl, setTrakteerUrl] = useState(initial.trakteerUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -56,7 +58,11 @@ export function SettingsForm({ initial }: { initial: Initial }) {
       const res = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrisName: qrisName.trim(), adminWhatsapp: adminWhatsapp.trim() }),
+        body: JSON.stringify({
+          qrisName: qrisName.trim(),
+          adminWhatsapp: adminWhatsapp.trim(),
+          trakteerUrl: trakteerUrl.trim(),
+        }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -144,6 +150,27 @@ export function SettingsForm({ initial }: { initial: Initial }) {
             placeholder="6282111990423"
             inputMode="tel"
             className="h-9 w-full max-w-xs rounded-btn border border-line bg-bg px-3 text-[13px] text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Donasi */}
+      <div className="rounded-card border border-line bg-card p-5">
+        <h2 className="text-[14px] font-semibold text-fg">Donasi</h2>
+        <p className="mt-0.5 text-[12px] text-fg-sub">
+          Kosongkan jika tidak ingin menampilkan donasi. Section donasi di Community hanya muncul jika link diisi.
+        </p>
+        <div className="mt-4">
+          <label htmlFor="trakteer" className="mb-1 block text-[12px] font-medium text-fg-sub">
+            Link Trakteer
+          </label>
+          <input
+            id="trakteer"
+            value={trakteerUrl}
+            onChange={(e) => setTrakteerUrl(e.target.value)}
+            placeholder="https://trakteer.id/username"
+            inputMode="url"
+            className="h-9 w-full rounded-btn border border-line bg-bg px-3 text-[13px] text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none"
           />
         </div>
       </div>

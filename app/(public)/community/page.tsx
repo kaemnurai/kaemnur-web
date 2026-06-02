@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { NewTopicModal } from "@/components/community/NewTopicModal";
+import { RequestSection } from "@/components/community/RequestSection";
+import { DonationSection } from "@/components/community/DonationSection";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
 import { CATEGORY_STYLE, pseudoViews } from "@/lib/community";
 import { createClient } from "@/lib/supabase/client";
@@ -446,6 +448,10 @@ export default function CommunityPage() {
             </div>
           )}
         </div>
+
+      {/* Request Aplikasi + Donasi (donasi hanya muncul jika trakteerUrl diisi) */}
+      <RequestSection userId={userId} />
+      <DonationSection />
 
       <NewTopicModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>

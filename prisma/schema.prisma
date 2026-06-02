@@ -189,6 +189,7 @@ model Notification {
   orderId   String?
   userId    String?  // user-targeted notification (null = admin-facing)
   message   String
+  link      String?  // optional URL the user notification points to
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   topic     Topic?   @relation(fields: [topicId], references: [id], onDelete: Cascade)
@@ -216,6 +217,8 @@ model UserProfile {
   downloadLogs DownloadLog[]
   licenses     License[]
   orders       Order[]
+  appRequests     AppRequest[]
+  appRequestVotes AppRequestVote[]
 }
 
 model ProductRating {
@@ -273,5 +276,56 @@ model AppSettings {
   qrisImageUrl  String?
   qrisName      String?
   adminWhatsapp String?
+  trakteerUrl   String?
   updatedAt     DateTime @updatedAt
+}
+
+// ─── App Requests / Donations ───────────────────────────────────────────────
+
+enum RequestStatus {
+  OPEN
+  PLANNED
+  IN_PROGRESS
+  RELEASED
+  REJECTED
+}
+
+model AppRequest {
+  id                String           @id @default(cuid())
+  title             String
+  description       String
+  userId            String
+  user              UserProfile      @relation(fields: [userId], references: [id])
+  status            RequestStatus    @default(OPEN)
+  votes             AppRequestVote[]
+  voteCount         Int              @default(0)
+  releasedProductId String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model AppRequestVote {
+  id           String      @id @default(cuid())
+  appRequestId String
+  appRequest   AppRequest  @relation(fields: [appRequestId], references: [id], onDelete: Cascade)
+  userId       String
+  user         UserProfile @relation(fields: [userId], references: [id])
+  createdAt    DateTime    @default(now())
+
+  @@unique([appRequestId, userId])
+  @@index([userId])
+}
+
+model Donation {
+  id         String   @id @default(cuid())
+  donorName  String
+  amount     Int
+  message    String?
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([isApproved])
 }

@@ -58,6 +58,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       type: "order_approved",
       orderId: order.id,
       userId: order.userId,
+      link: `/transaksi/${order.id}`,
       message: `Pembayaran Anda dikonfirmasi! Lisensi ${order.productName} sudah tersedia di akun Anda.`,
     },
   });

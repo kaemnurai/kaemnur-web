@@ -13,7 +13,7 @@ export default async function AdminSettingsPage() {
       <AdminTopBar
         eyebrow="Workspace"
         title="Settings"
-        subtitle="QRIS pembayaran & kontak admin"
+        subtitle="QRIS pembayaran, kontak admin & donasi"
       />
       <div className="p-6">
         <div className="mx-auto max-w-2xl">
@@ -22,6 +22,7 @@ export default async function AdminSettingsPage() {
               qrisImageUrl: s?.qrisImageUrl ?? null,
               qrisName: s?.qrisName ?? null,
               adminWhatsapp: s?.adminWhatsapp ?? null,
+              trakteerUrl: s?.trakteerUrl ?? null,
             }}
           />
         </div>

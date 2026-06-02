@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
 import { cn } from "@/lib/utils";
 import { getAvatarColor, getAvatarTextColor, getInitial } from "@/lib/avatar";
+import { UserNotificationBell } from "@/components/layout/UserNotificationBell";
 import type { User } from "@supabase/supabase-js";
 
 type SearchResult = {
@@ -229,7 +230,9 @@ export function Navbar() {
         {/* Right cluster — desktop only (mobile uses bottom-nav Account) */}
         <div className="ml-auto hidden items-center gap-2 md:flex">
           {user ? (
-            /* Logged-in user dropdown */
+            <>
+            <UserNotificationBell />
+            {/* Logged-in user dropdown */}
             <div className="relative" ref={userMenuRef}>
               <button type="button" onClick={() => setUserMenuOpen((v) => !v)} className="flex items-center gap-2 rounded-btn py-1 pl-1 pr-2 hover:bg-card">
                 {userMeta.avatarUrl ? (
@@ -265,6 +268,7 @@ export function Navbar() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             /* Not logged in */
             <>

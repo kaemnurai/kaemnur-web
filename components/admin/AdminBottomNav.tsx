@@ -37,6 +37,8 @@ export function AdminBottomNav({ pendingOrders = 0 }: { pendingOrders?: number }
 
   const drawerLinks: { label: string; icon: NavItem["icon"]; href: string }[] = [
     { label: "Community", icon: "message-square", href: "/community" },
+    { label: "Requests", icon: "sparkles", href: "/admin/requests" },
+    { label: "Donations", icon: "heart", href: "/admin/donations" },
     { label: "Notifications", icon: "bell", href: "/admin/notifications" },
     { label: "Settings", icon: "tool", href: "/admin/settings" },
     { label: "Back to Site", icon: "arrow-left", href: "/" },

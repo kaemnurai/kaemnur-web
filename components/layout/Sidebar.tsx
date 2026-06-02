@@ -42,11 +42,13 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
       icon: "tag",
       badge: counts?.pendingOrders ? String(counts.pendingOrders) : undefined,
     },
+    { href: "/admin/donations", label: "Donations", icon: "heart" },
     { href: "/admin/settings", label: "Settings", icon: "tool" },
   ];
 
   const communityItems: AdminNavItem[] = [
     { href: "/community", label: "Community", icon: "message-square" },
+    { href: "/admin/requests", label: "Requests", icon: "sparkles" },
     {
       href: "/admin/notifications",
       label: "Notifications",
