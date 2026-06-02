@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   try {
     const key = `logos/${parsed.slug}/logo.${parsed.ext}`;
     const url = await uploadToR2Assets(parsed.buffer, key, parsed.file.type);
-    return NextResponse.json({ url: `${url}?v=${Date.now()}` });
+    return NextResponse.json({ url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload gagal.";
     return NextResponse.json({ error: message }, { status: 500 });

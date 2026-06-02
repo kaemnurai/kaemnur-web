@@ -19,6 +19,7 @@ export function LogoUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(initialLogoUrl);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialLogoUrl);
   const [busy, setBusy] = useState(false);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -45,6 +46,7 @@ export function LogoUploader({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Upload gagal.");
       setLogoUrl(data.url);
+      setPreviewUrl(`${data.url}?v=${Date.now()}`);
       toast("Logo berhasil diupload", "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Upload gagal.", "error");
@@ -66,9 +68,9 @@ export function LogoUploader({
         title="Ganti logo (PNG/JPG/WEBP, max 2MB)"
         className="group relative grid h-16 w-16 cursor-pointer place-items-center overflow-hidden rounded-card border border-line bg-card text-[26px] font-bold text-accent transition-colors hover:border-accent/60"
       >
-        {logoUrl ? (
+        {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="h-full w-full object-contain" />
+          <img src={previewUrl} alt="" className="h-full w-full object-contain" />
         ) : (
           initial
         )}
