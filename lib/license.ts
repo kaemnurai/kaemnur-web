@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 // ─────────────────────────────────────────────────────────────────────────
 // License key generation — MUST stay byte-for-byte compatible with
-// tools/keygen.js and the KaemDocs desktop app's licenseManager.
+// tools/keygen.js and the KaemPDF desktop app's licenseManager.
 //
 // Key format: KAEM-XXXX-XXXX-CCCC
 //   KAEM  = fixed prefix
@@ -23,7 +23,7 @@ const EXPECTED_SECRET_LENGTH = 32;
 function getSecret(): string {
   // LICENSE_SECRET is the canonical name; LICENSE_HMAC_SECRET is an accepted
   // alias. BOTH must hold the exact same value as tools/keygen.js and the
-  // KaemDocs desktop app, or generated keys will fail offline validation.
+  // KaemPDF desktop app, or generated keys will fail offline validation.
   const secret = process.env.LICENSE_SECRET ?? process.env.LICENSE_HMAC_SECRET;
   if (!secret) {
     throw new Error("LICENSE_SECRET (or LICENSE_HMAC_SECRET) is not set in .env");

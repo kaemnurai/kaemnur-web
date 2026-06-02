@@ -5,7 +5,7 @@ import { verifyLicenseKey } from "@/lib/license";
 export const dynamic = "force-dynamic";
 
 // POST /api/licenses/validate
-// Called by the KaemDocs desktop app to bind a license to a device (online).
+// Called by the KaemPDF desktop app to bind a license to a device (online).
 // Offline HMAC validation still happens inside the app itself; this endpoint
 // adds central device binding + one-device enforcement.
 //
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // Returns { valid: true, buyerName, product, issuedAt, activatedAt }
 //      or { valid: false, reason }
 //
-// checkOnly === true  → pemeriksaan READ-ONLY (dipanggil app KaemDocs tiap startup).
+// checkOnly === true  → pemeriksaan READ-ONLY (dipanggil app KaemPDF tiap startup).
 //   Tidak pernah menulis ke database. Hanya mengonfirmasi lisensi masih aktif
 //   dan terikat ke perangkat yang sama. Dipakai untuk mendeteksi reset/revoke.
 export async function POST(req: NextRequest) {

@@ -3,9 +3,9 @@ import { PrismaClient, Platform } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const slug = "kaemdocs";
+  const slug = "kaempdf";
 
-  // Idempotent: wipe KaemDocs' child rows, then re-create.
+  // Idempotent: wipe KaemPDF' child rows, then re-create.
   const existing = await prisma.product.findUnique({ where: { slug } });
   if (existing) {
     await prisma.product.delete({ where: { slug } });
@@ -13,18 +13,18 @@ async function main() {
 
   const product = await prisma.product.create({
     data: {
-      name: "KaemDocs",
+      name: "KaemPDF",
       slug,
       tagline: "Offline-first document automation for administrative work.",
       description:
-        "KaemDocs is a lightweight desktop app for generating, editing, and organizing administrative documents — fully offline. Build documents from templates, export to PDF, and keep everything on your own machine. Upgrade to PRO for batch generation, unlimited templates, and data import.",
+        "KaemPDF is a lightweight desktop app for generating, editing, and organizing administrative documents — fully offline. Build documents from templates, export to PDF, and keep everything on your own machine. Upgrade to PRO for batch generation, unlimited templates, and data import.",
       version: "1.2.0",
       category: "Documents",
       isFeatured: true,
       downloadCount: 1280,
       screenshots: {
         create: [
-          { url: "https://placehold.co/1280x720/1A1A1A/F4B400?text=KaemDocs+Editor", order: 0 },
+          { url: "https://placehold.co/1280x720/1A1A1A/F4B400?text=KaemPDF+Editor", order: 0 },
           { url: "https://placehold.co/1280x720/F5F0E8/1C1C1C?text=Templates", order: 1 },
           { url: "https://placehold.co/1280x720/FFFFFF/1C1C1C?text=PDF+Export", order: 2 },
         ],
@@ -54,7 +54,7 @@ async function main() {
           },
           {
             version: "1.0.0",
-            notes: "- Initial release of KaemDocs",
+            notes: "- Initial release of KaemPDF",
           },
         ],
       },
@@ -63,7 +63,7 @@ async function main() {
           {
             version: "1.2.0",
             platform: Platform.WINDOWS,
-            fileUrl: "https://example.com/downloads/kaemdocs-1.2.0-setup.exe",
+            fileUrl: "https://example.com/downloads/kaempdf-1.2.0-setup.exe",
             fileSize: 47185920, // ~45 MB
           },
         ],

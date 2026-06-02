@@ -29,7 +29,7 @@ const PLATFORM_LABEL: Record<string, string> = {
   LINUX: "Linux",
 };
 
-// Split "KaemDocs" → ["Kaem", "Docs"] for the white/orange wordmark.
+// Split "KaemPDF" → ["Kaem", "PDF"] for the white/orange wordmark.
 function splitName(name: string): [string, string] {
   if (name.toLowerCase().startsWith("kaem") && name.length > 4) {
     return [name.slice(0, 4), name.slice(4)];

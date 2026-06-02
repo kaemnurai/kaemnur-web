@@ -72,7 +72,7 @@ export function buildLicenseDeliveryUrl(
 ): string {
   const wa = normalizeWhatsapp(buyerWhatsapp);
   const message =
-    `Halo ${buyerName}, berikut lisensi KaemDocs PRO Anda: ${key}. ` +
+    `Halo ${buyerName}, berikut lisensi KaemPDF PRO Anda: ${key}. ` +
     `Aktifkan di menu Upgrade PRO → Aktifkan Lisensi.`;
   return `https://wa.me/${wa}?text=${encodeURIComponent(message)}`;
 }
