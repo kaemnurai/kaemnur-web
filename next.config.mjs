@@ -9,6 +9,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "assets2.kaemnur.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "pub-26e373ab857a4dd38f44a93ba68e7e84.r2.dev",
         pathname: "/**",
       },
