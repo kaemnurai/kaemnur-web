@@ -129,8 +129,13 @@ export default async function AdminProductsPage({
                   return (
                     <li key={p.id} className="p-4">
                       <div className="flex items-start gap-3">
-                        <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-btn text-[16px] font-bold ${accent.bg} ${accent.fg}`}>
-                          {p.name[0]}
+                        <span className={`grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-btn text-[16px] font-bold ${accent.bg} ${accent.fg}`}>
+                          {p.logoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.logoUrl} alt={p.name} className="h-full w-full object-contain" />
+                          ) : (
+                            p.name[0]
+                          )}
                         </span>
                         <div className="min-w-0 flex-1">
                           <Link href={`/admin/products/${p.id}`} className="block truncate font-medium text-fg">
@@ -199,8 +204,13 @@ export default async function AdminProductsPage({
                     <tr key={p.id} className="hover:bg-card-hover">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-btn text-[18px] font-bold ${accent.bg} ${accent.fg}`}>
-                            {p.name[0]}
+                          <span className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-btn text-[18px] font-bold ${accent.bg} ${accent.fg}`}>
+                            {p.logoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.logoUrl} alt={p.name} className="h-full w-full object-contain" />
+                            ) : (
+                              p.name[0]
+                            )}
                           </span>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">

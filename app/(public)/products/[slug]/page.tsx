@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -136,11 +135,13 @@ export default async function ProductPage({
       <header className="flex items-start gap-4">
         <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-card border border-line bg-card">
           {product.logoUrl ? (
-            <Image
+            // Plain <img>: R2 public dev URLs send a TLS `unrecognized_name`
+            // warning that Node/undici (next/image server-side fetch) rejects,
+            // so we load the asset directly in the browser instead.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={product.logoUrl}
               alt={product.name}
-              width={80}
-              height={80}
               className="h-full w-full object-contain"
             />
           ) : (
