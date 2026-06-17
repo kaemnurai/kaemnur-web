@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   poweredByHeader: false,
+  // Domain canonicalization is handled in Vercel Domains.
+  // Keep host-level redirects out of app code to avoid apex/www loops.
   images: {
     formats: ["image/webp", "image/avif"],
     minimumCacheTTL: 60,
