@@ -72,7 +72,7 @@ export default async function LandingPage({
     prisma.changelog.findMany({
       orderBy: { releasedAt: "desc" },
       take: 6,
-      include: { product: { select: { name: true, slug: true } } },
+      include: { product: { select: { name: true, slug: true, logoUrl: true } } },
     }),
   ]);
 
@@ -81,7 +81,7 @@ export default async function LandingPage({
   const topProductsRaw = await prisma.product.findMany({
     orderBy: [{ downloadCount: "desc" }, { createdAt: "desc" }],
     take: 10,
-    select: { id: true, name: true, slug: true, category: true, downloadCount: true },
+    select: { id: true, name: true, slug: true, logoUrl: true, category: true, downloadCount: true },
   });
   const topProducts: TopProduct[] = topProductsRaw;
 
@@ -140,6 +140,7 @@ export default async function LandingPage({
     id: c.id,
     productName: c.product.name,
     productSlug: c.product.slug,
+    productLogoUrl: c.product.logoUrl,
     version: c.version,
     notes: c.notes.split("\n")[0].replace(/^[-•]\s*/, ""),
     releasedAt: c.releasedAt,

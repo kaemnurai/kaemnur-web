@@ -4,8 +4,9 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Icon } from "@/components/ui/Icon";
 import { SortDropdown } from "@/components/library/SortDropdown";
+import { ProductLogo } from "@/components/product/ProductLogo";
 import { getDisplayRating } from "@/lib/rating";
-import { formatBytes, formatCount, productAccent } from "@/lib/utils";
+import { formatBytes, formatCount } from "@/lib/utils";
 
 // Cache the library catalog for 60s (ISR).
 export const revalidate = 60;
@@ -73,7 +74,6 @@ export default async function DownloadPage({
       ) : (
         <div className="space-y-3">
           {products.map((product) => {
-            const accent = productAccent(product.slug);
             const totalSize = product.installers.reduce((s, i) => s + i.fileSize, 0);
             const { value: rating, count: ratingCount } = getDisplayRating(product);
             return (
@@ -83,11 +83,7 @@ export default async function DownloadPage({
               >
                 {/* Logo */}
                 <Link href={`/products/${product.slug}`} className="shrink-0">
-                  <span
-                    className={`grid h-16 w-16 place-items-center rounded-card border border-line bg-bg text-[26px] font-extrabold ${accent.fg}`}
-                  >
-                    {product.name[0]}
-                  </span>
+                  <ProductLogo name={product.name} slug={product.slug} logoUrl={product.logoUrl} />
                 </Link>
 
                 {/* Middle */}

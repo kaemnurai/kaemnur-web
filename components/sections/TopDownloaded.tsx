@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { ProductLogo } from "@/components/product/ProductLogo";
 import { Icon } from "@/components/ui/Icon";
-import { productAccent, formatCount } from "@/lib/utils";
+import { formatCount } from "@/lib/utils";
 
 export type TopProduct = {
   id: string;
   name: string;
   slug: string;
+  logoUrl: string | null;
   category: string;
   downloadCount: number;
 };
@@ -30,7 +32,6 @@ export function TopDownloaded({ products }: { products: TopProduct[] }) {
       <ul className="divide-y divide-line">
         {products.map((p, i) => {
           const rank = i + 1;
-          const accent = productAccent(p.slug);
           return (
             <li key={p.id}>
               <Link
@@ -46,11 +47,13 @@ export function TopDownloaded({ products }: { products: TopProduct[] }) {
                   {rank}
                 </span>
                 {/* Icon */}
-                <span
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded text-[13px] font-bold text-bg ${accent.solid}`}
-                >
-                  {p.name[0]}
-                </span>
+                <ProductLogo
+                  name={p.name}
+                  slug={p.slug}
+                  logoUrl={p.logoUrl}
+                  size="sm"
+                  className="rounded"
+                />
                 {/* Name + category */}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-semibold text-fg">{p.name}</p>

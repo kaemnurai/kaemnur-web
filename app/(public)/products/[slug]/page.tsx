@@ -2,18 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 import { Icon } from "@/components/ui/Icon";
 import { ScreenshotGallery } from "@/components/product/ScreenshotGallery";
 import { ChangelogAccordion } from "@/components/product/ChangelogAccordion";
 import { ProductCard, type ProductCardData } from "@/components/product/ProductCard";
+import { ProductLogo } from "@/components/product/ProductLogo";
 import { UpgradeProButton } from "@/components/product/UpgradeProButton";
 import { PlatformDownload } from "@/components/product/PlatformDownload";
+import { KaemFormLaunchCard } from "@/components/product/KaemFormLaunchCard";
 import { ReviewSection } from "@/components/product/ReviewSection";
 import { getDisplayRating } from "@/lib/rating";
+import { getKaemformLicenseInfo, type KaemFormLicenseInfo } from "@/lib/kaemform-license";
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-// Cache the product page for 120s (ISR) — Feature 6
+// Product pages are dynamic for KaemForm (per-user license lookup); other
+// products keep the 120s ISR cache.
 export const revalidate = 120;
 
 type TabKey = "overview" | "changelog" | "requirements";
@@ -45,7 +50,7 @@ export default async function ProductPage({
   searchParams,
 }: {
   params: { slug: string };
-  searchParams: { tab?: string };
+  searchParams: { tab?: string; desktop?: string; launch?: string };
 }) {
   const product = await prisma.product.findUnique({
     where: { slug: params.slug },
@@ -90,6 +95,18 @@ export default async function ProductPage({
   const minReq = product.requirements.find((r) => r.type === "minimum");
   const recReq = product.requirements.find((r) => r.type === "recommended");
 
+  // KaemForm is a SaaS product — swap the desktop "Install card" for a
+  // launch card driven by the signed-in user's KaemForm license.
+  const isKaemform = product.slug === "kaemform";
+  let kaemformLicense: KaemFormLicenseInfo = { type: "free", expiresAt: null, trialClaimed: false };
+  let kaemformLoggedIn = false;
+  if (isKaemform) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    kaemformLoggedIn = !!user;
+    if (user) kaemformLicense = await getKaemformLicenseInfo(product.id, user.id);
+  }
+
   const otherCards: ProductCardData[] = others.map((o) => {
     const avg = o.ratings.length > 0
       ? o.ratings.reduce((s, r) => s + r.rating, 0) / o.ratings.length
@@ -133,21 +150,13 @@ export default async function ProductPage({
 
       {/* Header: logo + name + meta (full width) */}
       <header className="flex items-start gap-4">
-        <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-card border border-line bg-card">
-          {product.logoUrl ? (
-            // Plain <img>: R2 public dev URLs send a TLS `unrecognized_name`
-            // warning that Node/undici (next/image server-side fetch) rejects,
-            // so we load the asset directly in the browser instead.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={product.logoUrl}
-              alt={product.name}
-              className="h-full w-full object-contain"
-            />
-          ) : (
-            <span className={cn("text-4xl font-extrabold", accent.fg)}>{product.name[0]}</span>
-          )}
-        </div>
+        <ProductLogo
+          name={product.name}
+          slug={product.slug}
+          logoUrl={product.logoUrl}
+          size="lg"
+          className="bg-card"
+        />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold text-fg md:text-[28px]">{product.name}</h1>
@@ -258,7 +267,23 @@ export default async function ProductPage({
 
         {/* ── Right column: install card + Fitur Utama ── */}
         <aside className="flex flex-col gap-4">
-          {/* Install card */}
+          {/* Install card (or KaemForm launch card for the SaaS product) */}
+          {isKaemform ? (
+            <KaemFormLaunchCard
+              productId={product.id}
+              loggedIn={kaemformLoggedIn}
+              licenseType={kaemformLicense.type}
+              expiresAt={kaemformLicense.expiresAt ? kaemformLicense.expiresAt.toISOString() : null}
+              trialClaimed={kaemformLicense.trialClaimed}
+              launchMode={
+                searchParams.desktop === "1"
+                  ? "desktop"
+                  : searchParams.launch === "1"
+                    ? "web"
+                    : null
+              }
+            />
+          ) : (
           <div className="rounded-card border border-line bg-card p-4">
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-success">Free</span>
@@ -326,6 +351,7 @@ export default async function ProductPage({
               <dd className="text-fg">{formatCount(product.downloadCount)}+</dd>
             </dl>
           </div>
+          )}
 
           {/* Fitur Utama — stretches to match the left column */}
           <div className="flex-1 rounded-card border border-line bg-card p-4">

@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { ProductLogo } from "@/components/product/ProductLogo";
 import { Icon } from "@/components/ui/Icon";
-import { productAccent } from "@/lib/utils";
 
 export type RecentUpdate = {
   id: string;
   productName: string;
   productSlug: string;
+  productLogoUrl: string | null;
   version: string;
   notes: string;
   releasedAt: Date | string;
@@ -42,19 +43,19 @@ export function RecentUpdates({ updates }: { updates: RecentUpdate[] }) {
         </Link>
       </header>
       <ul className="divide-y divide-line">
-        {updates.map((u) => {
-          const accent = productAccent(u.productSlug);
-          return (
+        {updates.map((u) => (
             <li key={u.id}>
               <Link
                 href={`/products/${u.productSlug}`}
                 className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-card-hover"
               >
-                <span
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded text-[13px] font-bold text-bg ${accent.solid}`}
-                >
-                  {u.productName[0]}
-                </span>
+                <ProductLogo
+                  name={u.productName}
+                  slug={u.productSlug}
+                  logoUrl={u.productLogoUrl}
+                  size="sm"
+                  className="rounded"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-semibold text-fg">{u.productName}</p>
                   <p className="truncate text-[12px] text-fg-sub">{u.notes}</p>
@@ -65,8 +66,7 @@ export function RecentUpdates({ updates }: { updates: RecentUpdate[] }) {
                 </div>
               </Link>
             </li>
-          );
-        })}
+        ))}
       </ul>
     </section>
   );
