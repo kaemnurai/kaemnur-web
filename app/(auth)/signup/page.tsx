@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/Input";
+import { getAuthRedirectPath } from "@/lib/auth-redirect";
 
 // Google SVG shared between form and success states
 const GoogleIcon = () => (
@@ -20,7 +21,7 @@ const GoogleIcon = () => (
 
 function SignupContent() {
   const params = useSearchParams();
-  const redirectTo = params.get("redirect") || "/";
+  const redirectTo = getAuthRedirectPath(params);
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -56,7 +57,10 @@ function SignupContent() {
     const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName.trim() || email.split("@")[0] } },
+      options: {
+        data: { display_name: displayName.trim() || email.split("@")[0] },
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+      },
     });
     setLoading(false);
 
@@ -106,7 +110,7 @@ function SignupContent() {
           </p>
 
           <Link
-            href="/login"
+            href={`/login?redirect=${encodeURIComponent(redirectTo)}`}
             className="mt-6 flex h-10 w-full items-center justify-center rounded-btn bg-accent text-[13px] font-semibold text-bg hover:bg-accent-hover"
           >
             Kembali ke Halaman Login

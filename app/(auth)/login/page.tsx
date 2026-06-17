@@ -7,12 +7,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/Input";
+import { getAuthRedirectPath } from "@/lib/auth-redirect";
 
 // Inner component uses useSearchParams — must be inside <Suspense>
 function LoginContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirectTo = params.get("redirect") || "/";
+  const redirectTo = getAuthRedirectPath(params);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
