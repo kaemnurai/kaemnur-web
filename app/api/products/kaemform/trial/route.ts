@@ -14,7 +14,9 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login diperlukan." }, { status: 401 });
 
-  const product = await prisma.product.findUnique({ where: { slug: "kaemform" } });
+  const product = await prisma.product.findFirst({
+    where: { slug: { equals: "kaemform", mode: "insensitive" } },
+  });
   if (!product) return NextResponse.json({ error: "Produk tidak ditemukan." }, { status: 404 });
 
   const existing = await prisma.license.findFirst({

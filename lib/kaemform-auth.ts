@@ -119,12 +119,18 @@ function withEffectiveRetention(
 
 export async function getKaemFormBridgeLicense(userId: string): Promise<KaemFormBridgeLicense> {
   const products = await prisma.product.findMany({
-    where: { slug: { in: ["kaemform", "kaemform-storage"] } },
+    where: {
+      OR: [
+        { slug: { equals: "kaemform", mode: "insensitive" } },
+        { slug: { equals: "kaemform-storage", mode: "insensitive" } },
+      ],
+    },
     select: { id: true, slug: true },
   });
 
-  const kaemformProductId = products.find((p) => p.slug === "kaemform")?.id ?? null;
-  const storageProductId = products.find((p) => p.slug === "kaemform-storage")?.id ?? null;
+  const kaemformProductId = products.find((p) => p.slug.toLowerCase() === "kaemform")?.id ?? null;
+  const storageProductId =
+    products.find((p) => p.slug.toLowerCase() === "kaemform-storage")?.id ?? null;
 
   const [kaemformLicense, storageLicense] = await Promise.all([
     kaemformProductId

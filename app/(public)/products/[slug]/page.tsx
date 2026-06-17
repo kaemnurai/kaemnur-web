@@ -40,7 +40,9 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const product = await prisma.product.findUnique({ where: { slug: params.slug } });
+  const product = await prisma.product.findFirst({
+    where: { slug: { equals: params.slug, mode: "insensitive" } },
+  });
   if (!product) return { title: "Not found" };
   return { title: product.name, description: product.tagline ?? product.description };
 }
@@ -52,8 +54,8 @@ export default async function ProductPage({
   params: { slug: string };
   searchParams: { tab?: string; desktop?: string; launch?: string };
 }) {
-  const product = await prisma.product.findUnique({
-    where: { slug: params.slug },
+  const product = await prisma.product.findFirst({
+    where: { slug: { equals: params.slug, mode: "insensitive" } },
     include: {
       screenshots: { orderBy: { order: "asc" } },
       features: { orderBy: { isPro: "asc" } },
@@ -97,7 +99,7 @@ export default async function ProductPage({
 
   // KaemForm is a SaaS product — swap the desktop "Install card" for a
   // launch card driven by the signed-in user's KaemForm license.
-  const isKaemform = product.slug === "kaemform";
+  const isKaemform = product.slug.toLowerCase() === "kaemform";
   let kaemformLicense: KaemFormLicenseInfo = { type: "free", expiresAt: null, trialClaimed: false };
   let kaemformLoggedIn = false;
   if (isKaemform) {
@@ -271,6 +273,7 @@ export default async function ProductPage({
           {isKaemform ? (
             <KaemFormLaunchCard
               productId={product.id}
+              productSlug={product.slug}
               loggedIn={kaemformLoggedIn}
               licenseType={kaemformLicense.type}
               expiresAt={kaemformLicense.expiresAt ? kaemformLicense.expiresAt.toISOString() : null}
