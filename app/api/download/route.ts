@@ -1,38 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Platform } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { LATEST_INSTALLER_ORDER } from "@/lib/installers";
+import { recordDownloadEvent } from "@/lib/download-tracking";
 
 export const dynamic = "force-dynamic";
 
+// Legacy download endpoint, kept for older/bookmarked links. New public buttons
+// use /api/downloads/{slug}?platform=… instead. Either way, only the LATEST
+// installer for a product+platform is ever served — old releases are blocked so
+// users can't pull a stale, possibly-buggy binary.
+//
 // Supports two call patterns:
-//   ?id=<installerId>           — direct installer link (used from admin / legacy)
-//   ?productId=X&platform=windows — platform-based lookup (used from product page)
+//   ?id=<installerId>             — direct installer link (resolved to its latest)
+//   ?productId=X&platform=windows — platform-based lookup
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const directId = searchParams.get("id");
   const productId = searchParams.get("productId");
   const platformRaw = searchParams.get("platform")?.toUpperCase();
 
-  let installer: { id: string; productId: string; fileUrl: string; platform: Platform } | null =
-    null;
+  let lookupProductId: string | null = null;
+  let platform: Platform | null = null;
 
   if (directId) {
-    installer = await prisma.installer.findUnique({
+    const requested = await prisma.installer.findUnique({
       where: { id: directId },
-      select: { id: true, productId: true, fileUrl: true, platform: true },
+      select: { productId: true, platform: true },
     });
+    if (!requested) {
+      return NextResponse.json({ error: "Installer not found" }, { status: 404 });
+    }
+    lookupProductId = requested.productId;
+    platform = requested.platform;
   } else if (productId && platformRaw) {
-    const platform = Object.values(Platform).find((p) => p === platformRaw) ?? null;
+    platform = Object.values(Platform).find((p) => p === platformRaw) ?? null;
     if (!platform) {
       return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
     }
-    // Latest installer for this product+platform
-    installer = await prisma.installer.findFirst({
-      where: { productId, platform },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, productId: true, fileUrl: true, platform: true },
-    });
+    lookupProductId = productId;
   } else {
     return NextResponse.json(
       { error: "Provide ?id=<installerId> or ?productId=X&platform=windows" },
@@ -40,28 +46,30 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!installer) {
+  // Always resolve to the latest installer for this product+platform.
+  const latest = await prisma.installer.findFirst({
+    where: { productId: lookupProductId, platform },
+    orderBy: LATEST_INSTALLER_ORDER,
+    select: { id: true, productId: true, fileUrl: true, platform: true },
+  });
+  if (!latest) {
     return NextResponse.json({ error: "Installer not found" }, { status: 404 });
   }
 
-  // Capture authenticated user if present (best-effort — never blocks download)
-  let userId: string | null = null;
-  try {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    userId = user?.id ?? null;
-  } catch { /* not critical */ }
+  // If a specific (old) installer id was requested but it isn't the latest,
+  // refuse — old versions are not downloadable by the public.
+  if (directId && directId !== latest.id) {
+    return NextResponse.json(
+      { error: "This version is archived. Only the latest release can be downloaded." },
+      { status: 410 }
+    );
+  }
 
-  // Log the download + increment counter in parallel
-  await Promise.all([
-    prisma.downloadLog.create({
-      data: { productId: installer.productId, platform: installer.platform, userId },
-    }),
-    prisma.product.update({
-      where: { id: installer.productId },
-      data: { downloadCount: { increment: 1 } },
-    }),
-  ]);
+  await recordDownloadEvent(req, {
+    productId: latest.productId,
+    installerId: latest.id,
+    platform: latest.platform,
+  });
 
-  return NextResponse.redirect(installer.fileUrl);
+  return NextResponse.redirect(latest.fileUrl, 302);
 }

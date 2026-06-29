@@ -42,6 +42,7 @@ export function Sidebar({ counts }: { counts?: AdminNavCounts }) {
       icon: "tag",
       badge: counts?.pendingOrders ? String(counts.pendingOrders) : undefined,
     },
+    { href: "/admin/installers", label: "Release Manager", icon: "upload" },
     { href: "/admin/donations", label: "Donations", icon: "heart" },
     { href: "/admin/settings", label: "Settings", icon: "tool" },
   ];

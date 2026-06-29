@@ -72,10 +72,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         </div>
       </div>
 
-      {/* Body */}
+      {/* Body — fixed structure so every card has identical height
+          regardless of name/tagline length or whether a tagline exists. */}
       <div className="flex flex-1 flex-col gap-2 p-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-[14px] font-semibold text-fg">{product.name}</h3>
+          <h3 className="line-clamp-1 min-w-0 flex-1 text-[14px] font-semibold text-fg">
+            {product.name}
+          </h3>
           <div className="flex shrink-0 items-center gap-0.5 text-fg-muted">
             {product.platforms.map((p) => (
               <Icon
@@ -87,10 +90,12 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             ))}
           </div>
         </div>
-        {product.tagline && (
-          <p className="line-clamp-1 text-[12px] text-fg-sub">{product.tagline}</p>
-        )}
-        {/* Bottom row */}
+        {/* Tagline always reserves two lines so cards stay aligned even when
+            a product has no tagline or a short one. */}
+        <p className="line-clamp-2 min-h-[2rem] text-[12px] text-fg-sub">
+          {product.tagline ?? ""}
+        </p>
+        {/* Bottom row — pinned to the bottom edge of every card */}
         <div className="mt-auto flex items-center justify-between pt-1 text-[12px]">
           <span className="inline-flex items-center gap-1 text-fg-sub">
             {displayRating !== null ? (

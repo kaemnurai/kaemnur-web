@@ -4,86 +4,106 @@ import { verifyLicenseKey } from "@/lib/license";
 
 export const dynamic = "force-dynamic";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+function json(body: unknown, init?: ResponseInit) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...corsHeaders,
+      ...(init?.headers ?? {}),
+    },
+  });
+}
+
+export function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 // POST /api/licenses/validate
-// Called by the KaemPDF desktop app to bind a license to a device (online).
-// Offline HMAC validation still happens inside the app itself; this endpoint
-// adds central device binding + one-device enforcement.
-//
-// Body: { key, deviceId, platform, checkOnly? }
-// Returns { valid: true, buyerName, product, issuedAt, activatedAt }
-//      or { valid: false, reason }
-//
-// checkOnly === true  → pemeriksaan READ-ONLY (dipanggil app KaemPDF tiap startup).
-//   Tidak pernah menulis ke database. Hanya mengonfirmasi lisensi masih aktif
-//   dan terikat ke perangkat yang sama. Dipakai untuk mendeteksi reset/revoke.
+// Used by desktop apps to bind a license to a device once online.
+// Body: { key, deviceId, platform, checkOnly?, productSlug? }
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const key = String(body?.key ?? "").trim().toUpperCase();
   const deviceId = String(body?.deviceId ?? "").trim();
   const platformRaw = String(body?.platform ?? "").trim().toUpperCase();
-  const platform = ["WINDOWS", "MAC", "LINUX"].includes(platformRaw) ? platformRaw : null;
+  const platform = ["WINDOWS", "MAC", "LINUX", "WEB", "ANDROID"].includes(platformRaw) ? platformRaw : null;
   const checkOnly = body?.checkOnly === true;
+  const productSlug = String(body?.productSlug ?? body?.product ?? "").trim().toLowerCase();
 
   if (!key || !deviceId) {
-    return NextResponse.json(
-      { valid: false, reason: "Kunci dan ID perangkat wajib diisi." },
-      { status: 400 }
-    );
+    return json({ valid: false, reason: "Kunci dan ID perangkat wajib diisi." }, { status: 400 });
   }
 
-  // ── Pemeriksaan READ-ONLY (checkOnly) ──────────────────────────────────
-  // Tidak mengubah field apa pun (deviceId/isActivated/activatedAt). Satu kali
-  // baca DB ber-index → cepat (< 2 detik). Tidak menyentuh logika aktivasi.
   if (checkOnly) {
     const license = await prisma.license.findUnique({
       where: { key },
-      select: { isActivated: true, deviceId: true, buyerName: true, activatedAt: true },
+      select: {
+        isActivated: true,
+        deviceId: true,
+        buyerName: true,
+        activatedAt: true,
+        product: { select: { name: true, slug: true } },
+      },
     });
 
-    if (license && license.isActivated && license.deviceId && license.deviceId === deviceId) {
-      return NextResponse.json({
-        valid: true,
-        buyerName: license.buyerName,
-        activatedAt: license.activatedAt,
-      });
+    if (license && productSlug && license.product.slug !== productSlug) {
+      return json({ valid: false, reason: "Kunci lisensi bukan untuk produk ini." });
     }
-    // Tidak terdaftar / direset / dicabut / pindah perangkat → tidak aktif.
-    return NextResponse.json({ valid: false, reason: "not_activated" });
-  }
 
-  // 1) Offline-style signature check first — reject forged/typo'd keys cheaply.
-  if (!verifyLicenseKey(key)) {
-    return NextResponse.json({ valid: false, reason: "Kunci lisensi tidak valid." });
-  }
-
-  // 2) Key must exist in our records.
-  const license = await prisma.license.findUnique({
-    where: { key },
-    include: { product: { select: { name: true } } },
-  });
-  if (!license) {
-    return NextResponse.json({ valid: false, reason: "Kunci tidak terdaftar." });
-  }
-
-  // 3) Already activated?
-  if (license.isActivated) {
-    if (license.deviceId && license.deviceId === deviceId) {
-      // Same device re-activating (e.g. reinstall) — allow.
-      return NextResponse.json({
+    if (license && license.isActivated && license.deviceId && license.deviceId === deviceId) {
+      return json({
         valid: true,
         buyerName: license.buyerName,
         product: license.product.name,
+        productSlug: license.product.slug,
+        activatedAt: license.activatedAt,
+      });
+    }
+
+    return json({ valid: false, reason: "not_activated" });
+  }
+
+  if (!verifyLicenseKey(key)) {
+    return json({ valid: false, reason: "Kunci lisensi tidak valid." });
+  }
+
+  const license = await prisma.license.findUnique({
+    where: { key },
+    include: { product: { select: { name: true, slug: true } } },
+  });
+
+  if (!license) {
+    return json({ valid: false, reason: "Kunci tidak terdaftar." });
+  }
+
+  if (productSlug && license.product.slug !== productSlug) {
+    return json({ valid: false, reason: "Kunci lisensi bukan untuk produk ini." });
+  }
+
+  if (license.isActivated) {
+    if (license.deviceId && license.deviceId === deviceId) {
+      return json({
+        valid: true,
+        buyerName: license.buyerName,
+        product: license.product.name,
+        productSlug: license.product.slug,
         issuedAt: license.createdAt,
         activatedAt: license.activatedAt,
       });
     }
-    return NextResponse.json({
+
+    return json({
       valid: false,
       reason: "Lisensi sudah diaktifkan di perangkat lain. Hubungi admin untuk reset.",
     });
   }
 
-  // 4) First activation — bind to this device.
   const updated = await prisma.license.update({
     where: { id: license.id },
     data: {
@@ -94,10 +114,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({
+  return json({
     valid: true,
     buyerName: updated.buyerName,
     product: license.product.name,
+    productSlug: license.product.slug,
     issuedAt: updated.createdAt,
     activatedAt: updated.activatedAt,
   });

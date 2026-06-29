@@ -67,13 +67,13 @@ export async function getProductIds(supabase: SupabaseClient): Promise<ProductId
   const { data, error } = await supabase
     .from("Product")
     .select("id, slug")
-    .in("slug", ["kaemform", "kaemform-storage"]);
+    .or("slug.ilike.kaemform,slug.ilike.kaemform-storage");
 
   if (error) throw error;
 
   return {
-    kaemformId: data?.find((p) => p.slug === "kaemform")?.id ?? null,
-    storageId: data?.find((p) => p.slug === "kaemform-storage")?.id ?? null,
+    kaemformId: data?.find((p) => p.slug.toLowerCase() === "kaemform")?.id ?? null,
+    storageId: data?.find((p) => p.slug.toLowerCase() === "kaemform-storage")?.id ?? null,
   };
 }
 

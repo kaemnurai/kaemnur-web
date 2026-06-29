@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { Icon } from "@/components/ui/Icon";
@@ -17,9 +18,50 @@ import { getKaemformLicenseInfo, type KaemFormLicenseInfo } from "@/lib/kaemform
 import { formatBytes, formatCount, productAccent } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-// Product pages are dynamic for KaemForm (per-user license lookup); other
-// products keep the 120s ISR cache.
-export const revalidate = 120;
+// Product pages are dynamic for KaemForm (per-user license lookup), and
+// `searchParams` (tab/desktop/launch) forces dynamic rendering for every
+// product — so `revalidate` never actually applied here. The two catalog
+// reads below are memoized directly via unstable_cache instead, which keeps
+// the same ~120s freshness window in effect regardless of page dynamism.
+const getProductBySlug = unstable_cache(
+  async (slug: string) => {
+    return prisma.product.findFirst({
+      where: { slug: { equals: slug, mode: "insensitive" } },
+      include: {
+        screenshots: { orderBy: { order: "asc" } },
+        features: { orderBy: { isPro: "asc" } },
+        changelogs: { orderBy: { releasedAt: "desc" } },
+        installers: { orderBy: { createdAt: "desc" } },
+        requirements: true,
+        mentionedInTopics: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          include: { _count: { select: { comments: true } } },
+        },
+        ratings: true,
+      },
+    });
+  },
+  ["product-by-slug"],
+  { revalidate: 120 }
+);
+
+const getOtherProducts = unstable_cache(
+  async (excludeId: string) => {
+    return prisma.product.findMany({
+      where: { id: { not: excludeId } },
+      take: 4,
+      orderBy: [{ isFeatured: "desc" }, { downloadCount: "desc" }],
+      include: {
+        screenshots: { orderBy: { order: "asc" }, take: 1 },
+        installers: { select: { platform: true } },
+        ratings: { select: { rating: true } },
+      },
+    });
+  },
+  ["product-others"],
+  { revalidate: 120 }
+);
 
 type TabKey = "overview" | "changelog" | "requirements";
 
@@ -54,34 +96,10 @@ export default async function ProductPage({
   params: { slug: string };
   searchParams: { tab?: string; desktop?: string; launch?: string };
 }) {
-  const product = await prisma.product.findFirst({
-    where: { slug: { equals: params.slug, mode: "insensitive" } },
-    include: {
-      screenshots: { orderBy: { order: "asc" } },
-      features: { orderBy: { isPro: "asc" } },
-      changelogs: { orderBy: { releasedAt: "desc" } },
-      installers: { orderBy: { createdAt: "desc" } },
-      requirements: true,
-      mentionedInTopics: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: { _count: { select: { comments: true } } },
-      },
-      ratings: true,
-    },
-  });
+  const product = await getProductBySlug(params.slug);
   if (!product) notFound();
 
-  const others = await prisma.product.findMany({
-    where: { id: { not: product.id } },
-    take: 3,
-    orderBy: [{ isFeatured: "desc" }, { downloadCount: "desc" }],
-    include: {
-      screenshots: { orderBy: { order: "asc" }, take: 1 },
-      installers: { select: { platform: true } },
-      ratings: { select: { rating: true } },
-    },
-  });
+  const others = await getOtherProducts(product.id);
 
   const activeTab: TabKey =
     searchParams.tab === "changelog" || searchParams.tab === "requirements"
@@ -307,7 +325,7 @@ export default async function ProductPage({
               </a>
             )}
 
-            <PlatformDownload productId={product.id} installers={installerOptions} />
+            <PlatformDownload slug={product.slug} installers={installerOptions} />
 
             {hasPro && (
               <UpgradeProButton
@@ -452,7 +470,9 @@ export default async function ProductPage({
       {otherCards.length > 0 && (
         <section className="mt-10">
           <h2 className="mb-3 text-lg font-bold text-fg">More from Kaemnur</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Same grid breakpoints as the store/homepage grids so cards stay
+              the same compact size everywhere (3–4 per row on desktop). */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {otherCards.map((c) => (
               <ProductCard key={c.slug} product={c} />
             ))}

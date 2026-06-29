@@ -42,6 +42,27 @@ const config: Config = {
           sky: "#5AA0E0",
           rose: "#E5484D",
         },
+        // ─── /custom microsite — light theme, intentionally separate from
+        // the dark tokens above so the rest of the site is untouched ───
+        cw: {
+          bg: "#FFFFFF",
+          "bg-soft": "#F6F8FB",
+          card: "#FFFFFF",
+          "card-soft": "#F2F4F8",
+          line: "#E3E8EF",
+          fg: "#101828",
+          "fg-sub": "#4B5567",
+          "fg-muted": "#8A94A6",
+          navy: "#1D3A8A",
+          "navy-hover": "#16306F",
+          "navy-soft": "rgba(29,58,138,0.08)",
+          orange: "#F5871F",
+          "orange-hover": "#DD7611",
+          "orange-soft": "rgba(245,135,31,0.12)",
+          green: "#1FA855",
+          "green-hover": "#178A45",
+          "green-soft": "rgba(31,168,85,0.10)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -54,6 +75,15 @@ const config: Config = {
       boxShadow: {
         card: "0 1px 2px rgba(0,0,0,0.3)",
         "card-lg": "0 8px 24px rgba(0,0,0,0.4)",
+      },
+      keyframes: {
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+      },
+      animation: {
+        float: "float 6s ease-in-out infinite",
       },
     },
   },

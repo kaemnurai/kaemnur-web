@@ -19,10 +19,10 @@ const PLATFORM_META: Record<string, { label: string; icon: React.ComponentProps<
 };
 
 export function PlatformDownload({
-  productId,
+  slug,
   installers,
 }: {
-  productId: string;
+  slug: string;
   installers: InstallerOption[];
 }) {
   // Deduplicate to one installer per platform (take first/latest)
@@ -50,7 +50,7 @@ export function PlatformDownload({
   }
 
   const href = current
-    ? `/api/download?productId=${productId}&platform=${current.platform.toLowerCase()}`
+    ? `/api/downloads/${slug}?platform=${current.platform}`
     : "#";
 
   return (

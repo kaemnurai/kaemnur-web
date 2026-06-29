@@ -6,7 +6,7 @@ import { Platform } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isAdminAuthed } from "@/lib/auth";
 import { generateLicenseKey } from "@/lib/license";
-import { isR2Configured, uploadObject } from "@/lib/r2";
+import { isValidPlatform, isValidSha256, normalizeSha256 } from "@/lib/installers";
 
 function assertAdmin() {
   if (!isAdminAuthed()) {
@@ -196,35 +196,61 @@ export async function deleteChangelog(form: FormData) {
 }
 
 // ─── Installers ────────────────────────────────────────────────────────
-export async function addInstaller(form: FormData) {
+// The installer file is uploaded directly from the browser to R2 via a
+// presigned URL (see /api/admin/installers/presign) — by the time this
+// action runs, the file already exists in R2 and we only persist metadata.
+export async function addInstaller(input: {
+  productId: string;
+  version: string;
+  platform: string;
+  fileUrl: string;
+  fileSize: number;
+  sha256: string;
+  changelogNotes?: string;
+}): Promise<{ id: string }> {
   assertAdmin();
-  const productId = str(form, "productId");
-  const version = str(form, "version");
-  const platform = str(form, "platform") as Platform;
+  const productId = input.productId.trim();
+  const version = input.version.trim();
+  const platform = input.platform.trim().toUpperCase();
+  const fileUrl = input.fileUrl.trim();
+  const fileSize = Math.trunc(input.fileSize);
+  const sha256 = normalizeSha256(input.sha256 ?? "");
+  const changelogNotes = (input.changelogNotes ?? "").trim();
 
-  let fileUrl = str(form, "fileUrl");
-  let fileSize = Number(str(form, "fileSize")) || 0;
-
-  const file = form.get("file");
-  if (file instanceof File && file.size > 0) {
-    if (!isR2Configured()) {
-      throw new Error("Cloudflare R2 is not configured — provide a direct file URL instead.");
-    }
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const key = `installers/${productId}/${version}/${file.name}`;
-    fileUrl = await uploadObject(key, buffer, file.type || "application/octet-stream");
-    fileSize = file.size;
+  if (!productId || !version) {
+    throw new Error("Product dan version wajib diisi.");
   }
-
+  if (!isValidPlatform(platform)) {
+    throw new Error("Platform tidak valid.");
+  }
   if (!fileUrl) {
-    throw new Error("Provide an installer file (R2) or a direct file URL.");
+    throw new Error("File URL kosong — upload installer ke R2 gagal atau belum selesai.");
+  }
+  if (!Number.isFinite(fileSize) || fileSize <= 0) {
+    throw new Error("File size tidak valid.");
+  }
+  if (!isValidSha256(sha256)) {
+    throw new Error("sha256 wajib 64 karakter hex.");
   }
 
-  await prisma.installer.create({
-    data: { productId, version, platform, fileUrl, fileSize },
+  const created = await prisma.installer.create({
+    data: { productId, version, platform: platform as Platform, fileUrl, fileSize, sha256 },
   });
+
+  if (changelogNotes) {
+    await prisma.changelog.create({
+      data: { productId, version, notes: changelogNotes },
+    });
+  }
+
   revalidatePath("/admin/installers");
+  revalidatePath("/admin/products");
   revalidatePath("/download");
+  revalidatePath("/");
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { slug: true } });
+  if (product) revalidatePath(`/products/${product.slug}`);
+
+  return { id: created.id };
 }
 
 export async function deleteInstaller(form: FormData) {
@@ -299,36 +325,6 @@ export async function assignLicenseUser(form: FormData) {
   await prisma.license.update({ where: { id }, data: { userId } });
   revalidatePath("/admin/licenses");
   revalidatePath("/account");
-}
-
-// ─── Installers (per-product, from product edit page) ──────────────────
-// addInstaller and deleteInstaller already handle this; additionally
-// revalidate the product edit page so it refreshes inline.
-export async function addProductInstaller(form: FormData) {
-  assertAdmin();
-  const productId = str(form, "productId");
-  const version = str(form, "version");
-  const platform = str(form, "platform") as Platform;
-  const fileUrl = str(form, "fileUrl");
-  const fileSize = Number(str(form, "fileSize")) || 0;
-
-  if (!fileUrl) throw new Error("File URL is required.");
-
-  await prisma.installer.create({
-    data: { productId, version, platform, fileUrl, fileSize },
-  });
-  revalidatePath(`/admin/products/${productId}`);
-  revalidatePath("/admin/installers");
-  revalidatePath("/download");
-}
-
-export async function deleteProductInstaller(form: FormData) {
-  assertAdmin();
-  const productId = str(form, "productId");
-  await prisma.installer.delete({ where: { id: str(form, "id") } });
-  revalidatePath(`/admin/products/${productId}`);
-  revalidatePath("/admin/installers");
-  revalidatePath("/download");
 }
 
 // ─── Requirements ──────────────────────────────────────────────────────

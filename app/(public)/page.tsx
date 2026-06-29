@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Hero, type HeroProduct } from "@/components/sections/Hero";
 import { ProductSection } from "@/components/sections/ProductSection";
@@ -5,8 +7,54 @@ import { RecentUpdates, type RecentUpdate } from "@/components/sections/RecentUp
 import { TopDownloaded, type TopProduct } from "@/components/sections/TopDownloaded";
 import type { ProductCardData } from "@/components/product/ProductCard";
 
-// Cache the catalog for 60s (ISR) to cut DB load — Feature 6
-export const revalidate = 60;
+// The (public) layout forces dynamic rendering (live admin-edited data), and
+// this page reads searchParams — both already disable Next's full-route
+// cache, which makes `revalidate` a no-op for the *page*. The catalog
+// queries are the expensive part, so they're memoized directly via
+// unstable_cache (Data Cache) below: same 60s freshness window, but actually
+// in effect.
+const CATALOG_REVALIDATE = 60;
+
+const getCatalog = unstable_cache(
+  async (where: Prisma.ProductWhereInput) => {
+    return prisma.product.findMany({
+      where,
+      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+      include: {
+        screenshots: { orderBy: { order: "asc" } },
+        installers: { orderBy: { createdAt: "desc" } },
+        ratings: { select: { rating: true } },
+        features: { select: { text: true }, orderBy: { isPro: "asc" } },
+      },
+    });
+  },
+  ["homepage-catalog"],
+  { revalidate: CATALOG_REVALIDATE }
+);
+
+const getRecentChangelogs = unstable_cache(
+  async () => {
+    return prisma.changelog.findMany({
+      orderBy: { releasedAt: "desc" },
+      take: 6,
+      include: { product: { select: { name: true, slug: true, logoUrl: true } } },
+    });
+  },
+  ["homepage-recent-changelogs"],
+  { revalidate: CATALOG_REVALIDATE }
+);
+
+const getTopProducts = unstable_cache(
+  async () => {
+    return prisma.product.findMany({
+      orderBy: [{ downloadCount: "desc" }, { createdAt: "desc" }],
+      take: 10,
+      select: { id: true, name: true, slug: true, logoUrl: true, category: true, downloadCount: true },
+    });
+  },
+  ["homepage-top-products"],
+  { revalidate: CATALOG_REVALIDATE }
+);
 
 export default async function LandingPage({
   searchParams,
@@ -53,36 +101,18 @@ export default async function LandingPage({
   if (pricingFilters.includes("pro")) priceConditions.push({ priceAmount: { not: null } });
   const priceWhere = priceConditions.length > 0 ? { OR: priceConditions } : undefined;
 
-  const [products, recentChangelogs] = await Promise.all([
-    prisma.product.findMany({
-      where: {
-        ...(searchWhere ?? {}),
-        ...(categoryFilter ? { category: categoryFilter } : {}),
-        ...(priceWhere ?? {}),
-        ...(installerWhere ? { installers: installerWhere } : {}),
-      },
-      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
-      include: {
-        screenshots: { orderBy: { order: "asc" } },
-        installers: { orderBy: { createdAt: "desc" } },
-        ratings: { select: { rating: true } },
-        features: { select: { text: true }, orderBy: { isPro: "asc" } },
-      },
+  const [products, recentChangelogs, topProductsRaw] = await Promise.all([
+    getCatalog({
+      ...(searchWhere ?? {}),
+      ...(categoryFilter ? { category: categoryFilter } : {}),
+      ...(priceWhere ?? {}),
+      ...(installerWhere ? { installers: installerWhere } : {}),
     }),
-    prisma.changelog.findMany({
-      orderBy: { releasedAt: "desc" },
-      take: 6,
-      include: { product: { select: { name: true, slug: true, logoUrl: true } } },
-    }),
+    getRecentChangelogs(),
+    // Top 10 most-downloaded — independent of the active filters (Feature 3).
+    // downloadCount is the maintained aggregate of DownloadLog rows.
+    getTopProducts(),
   ]);
-
-  // Top 10 most-downloaded — independent of the active filters (Feature 3).
-  // downloadCount is the maintained aggregate of DownloadLog rows.
-  const topProductsRaw = await prisma.product.findMany({
-    orderBy: [{ downloadCount: "desc" }, { createdAt: "desc" }],
-    take: 10,
-    select: { id: true, name: true, slug: true, logoUrl: true, category: true, downloadCount: true },
-  });
   const topProducts: TopProduct[] = topProductsRaw;
 
   const featuredRaw = products.find((p) => p.isFeatured) ?? products[0] ?? null;
@@ -109,7 +139,6 @@ export default async function LandingPage({
         screenshots: featuredRaw.screenshots,
         features: featuredRaw.features,
         installerPlatforms: Array.from(new Set(featuredRaw.installers.map((i) => i.platform))),
-        primaryInstallerId: featuredRaw.installers[0]?.id ?? null,
       }
     : null;
 

@@ -6,6 +6,7 @@ import { AdminShell } from "@/components/layout/AdminShell";
 import { Input, Textarea, Select } from "@/components/ui/Input";
 import { Icon } from "@/components/ui/Icon";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
+import { CopyButton } from "@/components/admin/CopyButton";
 import { formatBytes, formatDate } from "@/lib/utils";
 import {
   updateProduct,
@@ -14,8 +15,6 @@ import {
   deleteFeature,
   addChangelog,
   deleteChangelog,
-  addProductInstaller,
-  deleteProductInstaller,
   upsertRequirements,
 } from "@/app/(admin)/admin/actions";
 import { RatingsPanel } from "@/components/admin/RatingsPanel";
@@ -184,76 +183,74 @@ export default async function EditProductPage({ params }: { params: { id: string
     />
   );
 
-  /* ───────────── Downloads ───────────── */
+  /* ───────────── Downloads (read-only summary; releases are managed centrally) ───────────── */
+  const latestByPlatform = new Map<string, (typeof product.installers)[number]>();
+  for (const inst of product.installers) {
+    if (!latestByPlatform.has(inst.platform)) latestByPlatform.set(inst.platform, inst); // already sorted createdAt desc
+  }
+
   const downloadsTab = (
     <div className="space-y-5">
-      <Card title="Add installer" subtitle="Tambah binary per platform. Tempel URL langsung (Cloudflare R2 / direct).">
-        <form
-          action={addProductInstaller}
-          className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <input type="hidden" name="productId" value={product.id} />
-          <Select id="inst-platform" name="platform" label="Platform" required>
-            <option value="WINDOWS">Windows</option>
-            <option value="MAC">macOS</option>
-            <option value="LINUX">Linux</option>
-          </Select>
-          <Input id="inst-version" name="version" label="Version" defaultValue={product.version} required />
-          <Input id="inst-url" name="fileUrl" type="url" label="File URL" placeholder="https://…" required />
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Input id="inst-size" name="fileSize" type="number" label="File size (bytes)" placeholder="47185920" />
-            </div>
-            <button type="submit" className={btnYellow}>
-              <Icon name="plus" size={13} />
-              Add
-            </button>
+      <Card
+        title="Latest releases"
+        subtitle="Ringkasan installer terbaru per platform. Upload & kelola file di Release Manager."
+        action={
+          <Link href={`/admin/installers?product=${product.slug}`} className={btnYellow}>
+            <Icon name="upload" size={13} />
+            Manage Releases
+          </Link>
+        }
+      >
+        {latestByPlatform.size === 0 ? (
+          <p className="py-6 text-center text-[13px] text-fg-sub">
+            Belum ada installer untuk produk ini.{" "}
+            <Link href={`/admin/installers?product=${product.slug}`} className="text-accent hover:underline">
+              Publish release pertama →
+            </Link>
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {Array.from(latestByPlatform.values()).map((inst) => {
+              const endpoint = `/api/updates/${product.slug}?platform=${inst.platform}`;
+              return (
+                <div key={inst.id} className="rounded-card border border-line bg-bg p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-btn bg-card text-fg-sub">
+                      <Icon name="package" size={16} />
+                    </span>
+                    <span className="text-[13px] font-semibold text-fg">
+                      {PLATFORM_LABELS[inst.platform] ?? inst.platform}
+                    </span>
+                    <span className="font-mono text-[11px] text-fg-sub">v{inst.version}</span>
+                    <span className="text-[11px] text-fg-sub">· {formatBytes(inst.fileSize)}</span>
+                  </div>
+                  <dl className="mt-3 grid gap-2 text-[12px] sm:grid-cols-2">
+                    <div className="flex items-center gap-1.5 sm:col-span-2">
+                      <dt className="shrink-0 text-fg-muted">Update-check:</dt>
+                      <dd className="truncate font-mono text-[11px] text-fg-sub">{endpoint}</dd>
+                      <CopyButton value={endpoint} title="Copy endpoint" />
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:col-span-2">
+                      <dt className="shrink-0 text-fg-muted">File URL:</dt>
+                      <dd className="truncate text-[11px] text-info">{inst.fileUrl}</dd>
+                      <CopyButton value={inst.fileUrl} title="Copy file URL" />
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:col-span-2">
+                      <dt className="shrink-0 text-fg-muted">sha256:</dt>
+                      <dd className="truncate font-mono text-[11px] text-fg-muted">{inst.sha256}</dd>
+                      <CopyButton value={inst.sha256} title="Copy sha256" />
+                    </div>
+                  </dl>
+                </div>
+              );
+            })}
           </div>
-        </form>
+        )}
       </Card>
 
-      {product.installers.length === 0 ? (
-        <Card>
-          <p className="py-6 text-center text-[13px] text-fg-sub">Belum ada installer.</p>
-        </Card>
-      ) : (
-        product.installers.map((inst) => (
-          <div
-            key={inst.id}
-            className="flex items-center justify-between gap-4 rounded-card border border-line bg-card p-5"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-btn bg-bg text-fg-sub">
-                <Icon name="package" size={18} />
-              </span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-semibold text-fg">
-                    {PLATFORM_LABELS[inst.platform] ?? inst.platform}
-                  </span>
-                  <span className="font-mono text-[11px] text-fg-sub">v{inst.version}</span>
-                  <span className="text-[11px] text-fg-sub">· {formatBytes(inst.fileSize)}</span>
-                </div>
-                <p className="truncate text-[11px] text-fg-muted">{inst.fileUrl}</p>
-              </div>
-            </div>
-            <form action={deleteProductInstaller} className="shrink-0">
-              <input type="hidden" name="id" value={inst.id} />
-              <input type="hidden" name="productId" value={product.id} />
-              <ConfirmSubmit
-                confirm="Delete this installer?"
-                className="text-[12px] text-danger hover:bg-danger/10"
-              >
-                Delete
-              </ConfirmSubmit>
-            </form>
-          </div>
-        ))
-      )}
-
       <Tip>
-        Gunakan URL langsung ke installer atau bucket Cloudflare R2. File size (bytes) membantu pengguna
-        sebelum mengunduh.
+        Upload file installer, version, sha256, dan changelog update dilakukan dari Release Manager
+        (Installers) supaya semua produk terkelola di satu tempat.
       </Tip>
     </div>
   );

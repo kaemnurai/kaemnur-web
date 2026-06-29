@@ -87,10 +87,13 @@ model Installer {
   platform  Platform
   fileUrl   String
   fileSize  Int // bytes
+  sha256    String // hex SHA-256 of the installer file; required for client integrity checks
   createdAt DateTime @default(now())
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  downloadLogs DownloadLog[]
 
   @@index([productId])
+  @@index([productId, platform, createdAt])
 }
 
 model License {
@@ -118,15 +121,20 @@ model License {
 }
 
 model DownloadLog {
-  id        String      @id @default(cuid())
-  productId String
-  platform  Platform
-  userId    String?     // Supabase auth user id (null for anonymous downloads)
-  createdAt DateTime    @default(now())
-  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      UserProfile? @relation(fields: [userId], references: [id])
+  id          String      @id @default(cuid())
+  productId   String
+  installerId String?     // which installer binary was served (null for legacy rows)
+  platform    Platform
+  userId      String?     // Supabase auth user id (null for anonymous downloads)
+  userAgent   String?     // truncated UA string for basic analytics
+  ipHash      String?     // salted SHA-256 of client IP — no raw IP stored
+  createdAt   DateTime    @default(now())
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  installer   Installer?  @relation(fields: [installerId], references: [id], onDelete: SetNull)
+  user        UserProfile? @relation(fields: [userId], references: [id])
 
   @@index([productId])
+  @@index([installerId])
   @@index([createdAt])
   @@index([userId])
 }

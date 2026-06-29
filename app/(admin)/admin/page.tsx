@@ -55,6 +55,7 @@ export default async function AdminDashboard({
     recentDownloads,
     products,
     allLogs,
+    totalDownloads,
   ] = await Promise.all([
     prisma.product.count(),
     prisma.license.count(),
@@ -76,16 +77,16 @@ export default async function AdminDashboard({
     prisma.product.findMany({
       orderBy: { createdAt: "desc" },
       take: 8,
-      include: { _count: { select: { installers: true, licenses: true, downloadLogs: true } } },
+      include: { _count: { select: { installers: true, licenses: true } } },
     }),
     // All logs in period for chart — Step 4
     prisma.downloadLog.findMany({
       where: { createdAt: { gte: periodStart } },
       select: { createdAt: true },
     }),
+    // Total real downloads — same source (DownloadLog) as everywhere else.
+    prisma.downloadLog.count(),
   ]);
-
-  const totalDownloads = await prisma.downloadLog.count();
 
   // Step 4: bin into per-day buckets for the chart
   const chartBins = new Array<number>(days).fill(0);
@@ -282,7 +283,7 @@ export default async function AdminDashboard({
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-fg">{formatCount(p._count.downloadLogs)}</td>
+                      <td className="px-4 py-3 text-fg">{formatCount(p.downloadCount)}</td>
                       <td className="px-4 py-3 text-fg">{p._count.licenses}</td>
                       <td className="px-4 py-3 text-[12px] text-fg-sub">{formatDate(p.createdAt)}</td>
                       <td className="px-4 py-3 text-right">

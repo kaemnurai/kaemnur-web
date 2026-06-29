@@ -1,0 +1,1 @@
+Offline-first validation with local verification.

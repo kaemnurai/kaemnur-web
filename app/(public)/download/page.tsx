@@ -1,15 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Icon } from "@/components/ui/Icon";
 import { SortDropdown } from "@/components/library/SortDropdown";
 import { ProductLogo } from "@/components/product/ProductLogo";
 import { getDisplayRating } from "@/lib/rating";
+import { pickLatestPerPlatform } from "@/lib/installers";
 import { formatBytes, formatCount } from "@/lib/utils";
 
-// Cache the library catalog for 60s (ISR).
-export const revalidate = 60;
+// `searchParams` forces this page to render dynamically, which makes a
+// page-level `revalidate` export a no-op — so the actual DB query is cached
+// directly via unstable_cache (Data Cache) instead, keyed by sort order.
+const getLibraryProducts = unstable_cache(
+  async (orderBy: Prisma.ProductOrderByWithRelationInput) => {
+    return prisma.product.findMany({
+      orderBy,
+      include: {
+        installers: { orderBy: { createdAt: "desc" } },
+        ratings: { select: { rating: true } },
+      },
+    });
+  },
+  ["library-products"],
+  { revalidate: 60 }
+);
 
 export const metadata: Metadata = {
   title: "Library",
@@ -41,13 +57,7 @@ export default async function DownloadPage({
       ? { downloadCount: "desc" }
       : { name: "asc" };
 
-  const products = await prisma.product.findMany({
-    orderBy,
-    include: {
-      installers: { orderBy: { createdAt: "desc" } },
-      ratings: { select: { rating: true } },
-    },
-  });
+  const products = await getLibraryProducts(orderBy);
 
   return (
     <div className="px-4 py-6 lg:px-8 lg:py-8">
@@ -74,7 +84,10 @@ export default async function DownloadPage({
       ) : (
         <div className="space-y-3">
           {products.map((product) => {
-            const totalSize = product.installers.reduce((s, i) => s + i.fileSize, 0);
+            // Only the latest installer per platform is offered — old versions
+            // are kept as history on the product page but not downloadable here.
+            const latestInstallers = pickLatestPerPlatform(product.installers);
+            const totalSize = latestInstallers.reduce((s, i) => s + i.fileSize, 0);
             const { value: rating, count: ratingCount } = getDisplayRating(product);
             return (
               <div
@@ -121,13 +134,13 @@ export default async function DownloadPage({
 
                 {/* Right: outlined platform buttons */}
                 <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                  {product.installers.length === 0 ? (
+                  {latestInstallers.length === 0 ? (
                     <span className="text-[12px] text-fg-muted">Installer belum tersedia</span>
                   ) : (
-                    product.installers.map((inst) => (
+                    latestInstallers.map((inst) => (
                       <a
                         key={inst.id}
-                        href={`/api/download?id=${inst.id}`}
+                        href={`/api/downloads/${product.slug}?platform=${inst.platform}`}
                         className="inline-flex h-9 items-center gap-1.5 rounded-btn border border-accent px-3 text-[12px] font-semibold text-accent transition-colors hover:bg-accent hover:text-bg"
                       >
                         <Icon name={PLATFORM_ICONS[inst.platform] ?? "download"} size={13} />

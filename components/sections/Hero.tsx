@@ -20,7 +20,6 @@ export type HeroProduct = {
   screenshots: { id: string; url: string }[];
   features: { text: string }[];
   installerPlatforms: string[];
-  primaryInstallerId: string | null;
 };
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -40,11 +39,11 @@ function splitName(name: string): [string, string] {
 export function Hero({ product }: { product: HeroProduct | null }) {
   if (!product) {
     return (
-      <section className="rounded-card border border-line bg-card p-10 text-center">
+      <section className="rounded-card border border-line bg-card p-6 text-center sm:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
           Kaemnur Store
         </p>
-        <h1 className="mt-3 text-3xl font-bold text-fg">No featured product yet</h1>
+        <h1 className="mt-3 text-2xl font-bold text-fg sm:text-3xl">No featured product yet</h1>
         <p className="mt-2 text-fg-sub">Add a product in the admin panel to feature it here.</p>
       </section>
     );
@@ -60,16 +59,20 @@ export function Hero({ product }: { product: HeroProduct | null }) {
     .map((p) => PLATFORM_LABEL[p] ?? p)
     .join(" · ");
 
-  const downloadHref = product.primaryInstallerId
-    ? `/api/download?id=${product.primaryInstallerId}`
+  // Download the latest installer for the first available platform through the
+  // tracked redirect endpoint; fall back to the library if none published yet.
+  const downloadHref = product.installerPlatforms[0]
+    ? `/api/downloads/${product.slug}?platform=${product.installerPlatforms[0]}`
     : "/download";
 
   return (
-    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1A1F2E] via-[#1A1F2E] to-[#0F1419]">
-      {/* Subtle orange glow behind the image — painted under the content */}
-      <div className="pointer-events-none absolute right-0 top-1/2 z-0 h-[600px] w-[600px] -translate-y-1/2 rounded-full bg-orange-500/10 blur-3xl" />
+    <section className="relative w-full max-w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#1A1F2E] via-[#1A1F2E] to-[#0F1419]">
+      {/* Subtle orange glow behind the image — painted under the content.
+          Capped at the section width so it never contributes to overflow even
+          before the parent's overflow-hidden clips it. */}
+      <div className="pointer-events-none absolute right-0 top-1/2 z-0 h-[420px] w-[420px] max-w-full -translate-y-1/2 rounded-full bg-orange-500/10 blur-3xl lg:h-[600px] lg:w-[600px]" />
 
-      <div className="relative z-10 grid grid-cols-1 items-center gap-8 p-8 lg:grid-cols-2 lg:p-12">
+      <div className="relative z-10 grid grid-cols-1 items-center gap-6 p-5 sm:gap-8 sm:p-8 lg:grid-cols-2 lg:p-12">
         {/* LEFT: copy */}
         <div className="relative z-10 min-w-0">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-accent">
@@ -77,7 +80,7 @@ export function Hero({ product }: { product: HeroProduct | null }) {
             New on Kaemnur
           </span>
 
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl">
             <span className="text-fg">{namePrefix}</span>
             <span className="text-accent">{nameSuffix}</span>
           </h1>
@@ -139,8 +142,10 @@ export function Hero({ product }: { product: HeroProduct | null }) {
         </div>
 
         {/* RIGHT: transparent hero PNG — no card wrapper, blends with background.
-            object-contain + centered → never cropped at any viewport. */}
-        <div className="relative flex h-[300px] w-full items-center justify-center sm:h-[400px] lg:h-[500px]">
+            object-contain + centered → never cropped at any viewport. Height is
+            kept modest on phones so the image never forces width or pushes the
+            fold too far down. */}
+        <div className="relative flex h-[220px] w-full max-w-full items-center justify-center sm:h-[400px] lg:h-[500px]">
           {heroSrc ? (
             <Image
               src={heroSrc}

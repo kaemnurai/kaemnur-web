@@ -10,6 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:seed:kaemphoto": "tsx prisma/seed-kaemphoto.ts",
+    "db:seed:kaemexcel": "tsx prisma/seed-kaemexcel.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

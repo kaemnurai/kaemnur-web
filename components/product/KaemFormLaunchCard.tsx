@@ -7,40 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 
 export type KaemFormLicenseType = "free" | "trial" | "pro";
 
-const KAEMFORM_PRIMARY_WORKSPACE_URL = "https://form.kaemnur.com/";
-const KAEMFORM_FALLBACK_WORKSPACE_URL = "https://kaemform-web.vercel.app/";
-
-async function canReachWorkspace(url: string): Promise<boolean> {
-  if (typeof window === "undefined") return true;
-
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 2500);
-
-  try {
-    await fetch(url, {
-      method: "HEAD",
-      mode: "no-cors",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-async function resolveWorkspaceUrl(targetUrl: URL): Promise<URL> {
-  if (targetUrl.hostname !== "form.kaemnur.com") return targetUrl;
-
-  const fallbackUrl = new URL(targetUrl.toString());
-  fallbackUrl.protocol = "https:";
-  fallbackUrl.host = new URL(KAEMFORM_FALLBACK_WORKSPACE_URL).host;
-
-  const primaryReady = await canReachWorkspace(KAEMFORM_PRIMARY_WORKSPACE_URL);
-  return primaryReady ? targetUrl : fallbackUrl;
-}
+const KAEMFORM_WEB_LOGIN_PATH = "/api/products/kaemform/web-login";
 
 export function KaemFormLaunchCard({
   productId,
@@ -79,6 +46,11 @@ export function KaemFormLaunchCard({
     : null;
 
   const launch = useCallback(async () => {
+    if (!desktopLaunch) {
+      window.location.assign(KAEMFORM_WEB_LOGIN_PATH);
+      return;
+    }
+
     setLoading("launch");
     try {
       const res = await fetch("/api/products/kaemform/launch", { method: "POST" });
@@ -99,8 +71,7 @@ export function KaemFormLaunchCard({
         callbackUrl.searchParams.set("redirect_to", "kaemform://auth/callback");
       }
 
-      const workspaceUrl = await resolveWorkspaceUrl(callbackUrl);
-      window.location.href = workspaceUrl.toString();
+      window.location.assign(callbackUrl.toString());
     } catch {
       toast("Terjadi kesalahan jaringan.", "error");
     } finally {

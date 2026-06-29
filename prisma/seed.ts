@@ -21,7 +21,8 @@ async function main() {
       version: "1.2.0",
       category: "Documents",
       isFeatured: true,
-      downloadCount: 1280,
+      // downloadCount intentionally omitted — it must only ever reflect real
+      // download events (see DownloadLog). Never seed a fake/manual value.
       screenshots: {
         create: [
           { url: "https://placehold.co/1280x720/1A1A1A/F4B400?text=KaemPDF+Editor", order: 0 },
@@ -65,6 +66,7 @@ async function main() {
             platform: Platform.WINDOWS,
             fileUrl: "https://example.com/downloads/kaempdf-1.2.0-setup.exe",
             fileSize: 47185920, // ~45 MB
+            sha256: "0".repeat(64), // seed/demo data — not a real file
           },
         ],
       },

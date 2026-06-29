@@ -34,7 +34,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on all paths except static files, _next internals, and favicon.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Keep auth/session middleware away from login, API routes, Next internals,
+    // favicon, public asset requests, and /admin (which uses its own cookie
+    // session, not Supabase) so they cannot participate in loops and don't
+    // pay for a Supabase round-trip they never read.
+    "/((?!api(?:/|$)|admin(?:/|$)|login(?:/|$)|_next(?:/|$)|favicon.ico|.*\\.(?:avif|css|gif|ico|jpeg|jpg|js|json|map|png|svg|txt|webmanifest|webp|woff|woff2)$).*)",
   ],
 };

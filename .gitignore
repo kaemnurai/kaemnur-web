@@ -40,3 +40,12 @@ next-env.d.ts
 # design references
 design-reference/
 design-reference-rev/
+
+# local debug/temp output
+.tmp/
+
+# large local-only asset bundles
+*.zip
+
+.vercel
+.env*

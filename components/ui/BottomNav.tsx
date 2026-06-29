@@ -89,15 +89,18 @@ export function BottomNav() {
       label: "Transaksi",
       icon: "tag",
       href: loggedIn ? "/transaksi" : "/login?redirect=/transaksi",
-      active: pathname.startsWith("/transaksi"),
+      active: pathname.startsWith("/transaksi") || pathname.startsWith("/transactions"),
       dot: badges.pendingOrders > 0,
     },
     {
       key: "account",
-      label: loggedIn ? "Account" : "Masuk",
+      label: loggedIn ? "Akun" : "Masuk",
       icon: "user",
       href: loggedIn ? "/account" : "/login",
-      active: pathname.startsWith("/account"),
+      active:
+        pathname.startsWith("/account") ||
+        pathname.startsWith("/profile") ||
+        pathname.startsWith("/login"),
       dot: loggedIn && badges.unreadNotifications > 0,
     },
   ];

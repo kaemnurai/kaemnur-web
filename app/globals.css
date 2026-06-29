@@ -9,6 +9,13 @@ body {
   /* Render text crisply on dark backgrounds */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Safety net against horizontal overflow on mobile. `clip` (not `hidden`)
+     is used so it does NOT turn the body into a scroll container, which would
+     otherwise break the sticky navbar. Root causes are still fixed in the
+     individual components — this just guarantees the page can never be dragged
+     sideways. */
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* Thin scrollbars to match the dark UI */

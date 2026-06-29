@@ -1,0 +1,1 @@
+Prioritize simplicity and avoid over-engineering.
