@@ -21,7 +21,7 @@ export function buildRequestMessage(form: EstimateForm): string {
   const features = featureLabels(form.features);
 
   return [
-    "Halo Kaemnur, saya ingin request pembuatan custom.",
+    "Halo Kaemnur, saya ingin request layanan Buat Website.",
     "",
     "Jenis layanan:",
     CATEGORIES[form.category].label,

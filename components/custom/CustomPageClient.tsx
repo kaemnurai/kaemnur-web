@@ -43,7 +43,7 @@ export function CustomPageClient() {
       <WhatsappCtaSection form={form} />
 
       <footer className="border-t border-cw-line bg-cw-bg py-8 text-center text-xs text-cw-fg-muted">
-        © {new Date().getFullYear()} Kaemnur — Layanan Custom.
+        © {new Date().getFullYear()} Kaemnur — Layanan Buat Website.
       </footer>
     </>
   );

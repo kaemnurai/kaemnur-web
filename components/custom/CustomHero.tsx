@@ -62,13 +62,12 @@ export function CustomHero({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cw-orange/60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-cw-orange" />
             </span>
-            Layanan Custom Kaemnur
+            Layanan Buat Website Kaemnur
           </span>
 
           <h1 className="mt-5 text-4xl font-bold leading-[1.08] tracking-tight text-cw-fg sm:text-5xl lg:text-[3.4rem]">
-            Website, Sistem, dan{" "}
-            <span className="whitespace-nowrap text-cw-navy">Tools Custom</span>{" "}
-            yang Siap Dipakai
+            Buat Website, Sistem, dan{" "}
+            <span className="whitespace-nowrap text-cw-navy">Tools Siap Pakai</span>
           </h1>
 
           <p className="mt-5 max-w-lg text-base leading-relaxed text-cw-fg-sub sm:text-lg">
@@ -135,7 +134,7 @@ export function CustomHero({
 
           <Image
             src="/custom/hero-person.png"
-            alt="Owner Kaemnur — layanan pembuatan website, web aplikasi, dan tools custom"
+            alt="Owner Kaemnur — layanan pembuatan website, web aplikasi, dan tools"
             width={1086}
             height={1448}
             priority

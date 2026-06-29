@@ -5,9 +5,9 @@ import { BackToKaemnur } from "@/components/custom/BackToKaemnur";
 // inherit the main site's Navbar / sidebar / footer. The microsite stands on
 // its own with a single "back to Kaemnur" link.
 export const metadata: Metadata = {
-  title: "Layanan Custom — Website, Web Aplikasi & Tools",
+  title: "Buat Website, Sistem, dan Tools Siap Pakai",
   description:
-    "Buat website, web aplikasi, dan tools custom sesuai kebutuhan. Hitung estimasi awal lalu konsultasi langsung via WhatsApp.",
+    "Buat website, sistem, dan tools sesuai kebutuhan dengan estimasi biaya awal, preview tampilan, dan konsultasi langsung via WhatsApp.",
 };
 
 export default function CustomLayout({

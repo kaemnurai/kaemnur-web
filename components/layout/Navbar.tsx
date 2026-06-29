@@ -29,8 +29,8 @@ const tabs = [
   { href: "/", label: "Store" },
   { href: "/download", label: "Library" },
   { href: "/community", label: "Community" },
-  { href: "/custom", label: "Custom" },
   { href: "/faq", label: "FAQ" },
+  { href: "/buat-website", label: "Buat Website" },
 ];
 
 export function Navbar() {
