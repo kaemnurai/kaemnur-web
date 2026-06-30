@@ -18,9 +18,7 @@ interface Option<K extends string> {
 }
 
 interface DetailOption extends Option<string>, PriceRange {}
-interface FeatureOption extends Option<string> {
-  add: PriceRange;
-}
+type FeatureOption = Option<string>;
 interface FixedOption extends Option<string> {
   price: number;
 }
@@ -73,19 +71,21 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
   },
 };
 
+// Informational only — these do not affect the price estimate. They're passed
+// along as extra context in the WhatsApp consultation message.
 export const FEATURES: FeatureOption[] = [
-  { key: "login", label: "Login admin/user", add: { min: 500_000, max: 1_500_000 } },
-  { key: "database", label: "Database", add: { min: 750_000, max: 2_000_000 } },
-  { key: "upload", label: "Upload file/gambar", add: { min: 500_000, max: 1_500_000 } },
-  { key: "export", label: "Export Excel/PDF", add: { min: 500_000, max: 1_500_000 } },
-  { key: "stats", label: "Dashboard statistik", add: { min: 750_000, max: 2_000_000 } },
-  { key: "adminpanel", label: "Admin panel", add: { min: 1_000_000, max: 3_000_000 } },
-  { key: "wa", label: "Notifikasi WhatsApp", add: { min: 500_000, max: 1_500_000 } },
-  { key: "payment", label: "Payment/checkout", add: { min: 1_500_000, max: 4_000_000 } },
-  { key: "multiuser", label: "Multi user/role akses", add: { min: 1_000_000, max: 3_000_000 } },
-  { key: "autoupdate", label: "Auto update aplikasi", add: { min: 1_000_000, max: 3_000_000 } },
-  { key: "license", label: "Lisensi aplikasi", add: { min: 1_500_000, max: 4_000_000 } },
-  { key: "premiumdesign", label: "Desain premium/custom UI", add: { min: 750_000, max: 2_500_000 } },
+  { key: "login", label: "Login admin/user" },
+  { key: "database", label: "Database" },
+  { key: "upload", label: "Upload file/gambar" },
+  { key: "export", label: "Export Excel/PDF" },
+  { key: "stats", label: "Dashboard statistik" },
+  { key: "adminpanel", label: "Admin panel" },
+  { key: "wa", label: "Notifikasi WhatsApp" },
+  { key: "payment", label: "Payment/checkout" },
+  { key: "multiuser", label: "Multi user/role akses" },
+  { key: "autoupdate", label: "Auto update aplikasi" },
+  { key: "license", label: "Lisensi aplikasi" },
+  { key: "premiumdesign", label: "Desain premium/custom UI" },
 ];
 
 export interface DomainChoice extends Option<string> {
@@ -108,15 +108,18 @@ export const DOMAINS: DomainChoice[] = [
   { key: "unknown", label: "Belum tahu", firstYear: 0 },
 ];
 
+// Annualized from the provider's discounted "periode 1 tahun" monthly rate
+// (price/bulan × 12), to match domain pricing which is also per tahun.
 export const HOSTINGS: FixedOption[] = [
-  { key: "small", label: "Small", price: 99_000 },
-  { key: "medium", label: "Medium", price: 199_000 },
-  { key: "large", label: "Large", price: 299_000 },
+  { key: "entry", label: "Entry Hosting", price: 25_000 * 12 },
+  { key: "unlimited-s", label: "Unlimited S", price: 60_000 * 12 },
+  { key: "unlimited-m", label: "Unlimited M", price: 110_000 * 12 },
+  { key: "unlimited-l", label: "Unlimited L", price: 160_000 * 12 },
   { key: "none", label: "Belum perlu / dibahas nanti", price: 0 },
 ];
 
 export const DEFAULT_DOMAIN: string = ".my.id";
-export const DEFAULT_HOSTING: string = "medium";
+export const DEFAULT_HOSTING: string = "unlimited-s";
 
 // ─── Form state ──────────────────────────────────────────────────────────────
 
@@ -173,28 +176,21 @@ export interface EstimateBreakdown {
   total: PriceRange;
 }
 
-/** Total estimasi awal = biaya jasa + biaya domain + biaya hosting. */
+/**
+ * Total estimasi awal = biaya jasa + biaya domain + biaya hosting.
+ * Fitur tambahan tidak memengaruhi harga — hanya informasi yang diteruskan
+ * ke pesan konsultasi WhatsApp.
+ */
 export function computeEstimate(form: EstimateForm): EstimateBreakdown {
   const base = detailOption(form) ?? { min: 0, max: 0 };
-  let serviceMin = base.min;
-  let serviceMax = base.max;
-
-  for (const key of form.features) {
-    const f = find(FEATURES, key);
-    if (f) {
-      serviceMin += f.add.min;
-      serviceMax += f.add.max;
-    }
-  }
-
   const domain = domainOption(form)?.firstYear ?? 0;
   const hosting = hostingOption(form)?.price ?? 0;
 
   return {
-    service: { min: serviceMin, max: serviceMax },
+    service: { min: base.min, max: base.max },
     domain,
     hosting,
-    total: { min: serviceMin + domain + hosting, max: serviceMax + domain + hosting },
+    total: { min: base.min + domain + hosting, max: base.max + domain + hosting },
   };
 }
 
